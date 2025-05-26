@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.ToString;
 
 @Data
-public class LoginRequest {
+public class LoginRequestDto{
 
     /** The email. */
     @NotNull

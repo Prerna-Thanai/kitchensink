@@ -2,12 +2,15 @@ package com.kitchensink.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
+
+import java.util.List;
 
 /**
  * The Class RegisterMember.
@@ -39,9 +42,16 @@ public class RegisterMemberDto {
     private String phoneNumber;
 	
 	/** The password. */
-	@NotNull
-	@Size(min = 7, max = 20)
+	@NotNull(message = "Password is required.")
+	@Pattern(
+			regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,20}$",
+			message = "Password must be 8–20 characters long, and include uppercase, lowercase, number, and special character."
+	)
 	@ToString.Exclude
 	private String password;
+
+	@NotEmpty(message = "At least one role must be added")
+	@Size(min = 1, max = 10, message = "Max of 10 roles can be assigned")
+	private List<String> roles;
 
 }

@@ -1,41 +1,41 @@
 package com.kitchensink.entity;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
-
-import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.stereotype.Indexed;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Document(collection = "member")
 @Builder
 @Data
 @AllArgsConstructor
-public class Member implements Serializable {
+@NoArgsConstructor
+public class Member {
 
     @Id
     private String id;
 
-    @NotNull
     private String name;
 
-    @NotNull
+    @Indexed(unique = true)
     private String email;
 
-    @NotNull
     private String phoneNumber;
-    
-    @NotNull
-    @JsonIgnore
+
+    @ToString.Exclude
     private String password;
-    
+
+    private boolean isActive;
+
+    private List<String> roles;
+
     private LocalDateTime createdAt;
 
 }

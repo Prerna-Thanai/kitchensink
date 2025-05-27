@@ -25,9 +25,9 @@ public class CalculatorTest {
 
     @Test
     public void testSubtract() {
-        when(mathService.subtract(5, 2)).thenReturn(3);
-        int result = calculator.subtract(5, 2);
-        assertEquals(3, result);
+        when(mathService.subtract(5, 3)).thenReturn(2);
+        int result = calculator.subtract(5, 3);
+        assertEquals(2, result);
     }
 
     @Test

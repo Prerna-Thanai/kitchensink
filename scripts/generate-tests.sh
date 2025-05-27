@@ -25,7 +25,7 @@ for file in $files; do
     class_content=$(cat "$file")
 
     # Generate test via OpenAI API
-    response=$(curl -s -v https://api.openai.com/v1/chat/completions \
+    response=$(curl -s https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
       -d @- <<EOF

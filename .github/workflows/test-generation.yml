@@ -1,0 +1,29 @@
+name: Generate JUnit Tests
+
+on:
+  pull_request: # Trigger on pull request events
+    types: [opened, reopened] # Specifically when a PR is opened or reopened
+    branches:
+      - main # Target branch for the pull request
+    paths: # Add this section to filter by file paths
+      - 'src/main/java/**/*.java' # Only trigger if Java files in src/main/java are changed
+
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Run test generator script
+        run: |
+          ./scripts/generate-tests.sh
+      - name: Commit generated tests
+        run: |
+          git config user.name "CI Bot"
+          git config user.email "ci@member.com"
+          git add src/test/java
+          git commit -m "Add AI-generated unit tests"
+          git push
+          

@@ -4,6 +4,12 @@
 # Configuration
 BASE_SHA=$1
 HEAD_SHA=$2
+
+echo "API key length: ${#OPENAI_API_KEY}"
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "Error: OPENAI_API_KEY is not set."
+    exit 1
+fi
 MODEL="gpt-4.1-nano"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)

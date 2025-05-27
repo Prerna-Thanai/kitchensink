@@ -2,10 +2,12 @@
 # set -e
 
 # Configuration
+BASE_SHA=$1
+HEAD_SHA=$2
 MODEL="gpt-4.1-nano"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
-files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- '*.java' | grep -v "$TEST_DIR")
+files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '*.java' | grep -v "$TEST_DIR")
 echo $(pwd)
 echo 'Files: ' $files
 mkdir -p $TEST_DIR/generated

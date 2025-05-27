@@ -26,7 +26,7 @@ jobs:
       - name: Show changed files
         run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
       - name: Run test generator script
-        run: ./scripts/generate-tests.sh
+        run: ./scripts/generate-tests.sh ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
       - name: Commit generated tests
         run: |
           git config user.name "CI Bot"

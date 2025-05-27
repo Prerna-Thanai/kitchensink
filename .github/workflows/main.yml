@@ -35,7 +35,11 @@ jobs:
         run: |
           git config user.name "CI Bot"
           git config user.email "ci@member.com"
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          new_branch="${current_branch}-ai-test"
+          git checkout -b "$new_branch"
           git add src/test/java
           git commit -m "Add AI-generated unit tests"
-          git push
+          git push -u origin "$new_branch"
+          gh pr create --base "$current_branch" --head "$new_branch" --title "Add AI-generated tests" --body "Automated AI-generated tests for branch $current_branch"
           

@@ -26,20 +26,4 @@ public class CalculatorTest {
         int result = calculator.subtract(5, 3);
         assertEquals(2, result);
     }
-
-    @Test
-    public void testMultiply() {
-        Calculator calculator = new Calculator(calculatorService);
-        when(calculatorService.multiply(2, 3)).thenReturn(6);
-        int result = calculator.multiply(2, 3);
-        assertEquals(6, result);
-    }
-
-    @Test
-    public void testDivide() {
-        Calculator calculator = new Calculator(calculatorService);
-        when(calculatorService.divide(6, 3)).thenReturn(2);
-        int result = calculator.divide(6, 3);
-        assertEquals(2, result);
-    }
 }

@@ -1,7 +1,9 @@
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -9,21 +11,36 @@ import static org.mockito.Mockito.when;
 public class CalculatorTest {
 
     @Mock
-    private CalculatorService calculatorService;
+    private MathService mathService;
+
+    @InjectMocks
+    private Calculator calculator;
 
     @Test
     public void testAdd() {
-        Calculator calculator = new Calculator(calculatorService);
-        when(calculatorService.add(2, 3)).thenReturn(5);
+        when(mathService.add(2, 3)).thenReturn(5);
         int result = calculator.add(2, 3);
         assertEquals(5, result);
     }
 
     @Test
     public void testSubtract() {
-        Calculator calculator = new Calculator(calculatorService);
-        when(calculatorService.subtract(5, 3)).thenReturn(2);
-        int result = calculator.subtract(5, 3);
+        when(mathService.subtract(5, 2)).thenReturn(3);
+        int result = calculator.subtract(5, 2);
+        assertEquals(3, result);
+    }
+
+    @Test
+    public void testMultiply() {
+        when(mathService.multiply(2, 3)).thenReturn(6);
+        int result = calculator.multiply(2, 3);
+        assertEquals(6, result);
+    }
+
+    @Test
+    public void testDivide() {
+        when(mathService.divide(6, 3)).thenReturn(2);
+        int result = calculator.divide(6, 3);
         assertEquals(2, result);
     }
 }

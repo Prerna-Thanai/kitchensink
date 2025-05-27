@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e
 
 # Configuration
 MODEL="gpt-4.1-nano"

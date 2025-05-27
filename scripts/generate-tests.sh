@@ -23,27 +23,26 @@ for file in $files; do
 
     # Extract class content
     class_content=$(cat "$file")
+    rm request.json
+    jq -n \
+    --arg model "$MODEL" \
+    --arg sys "You are a Java developer who writes complete and valid JUnit 5 tests." \
+    --arg content "Write JUnit 5 test cases for the following class:\n\n$CLASS_CONTENT" \
+    --argjson temp 0.3 \
+    '{
+      model: $model,
+      messages: [
+        { role: "system", content: $sys },
+        { role: "user", content: $content }
+      ],
+      temperature: $temp
+    }' > request.json
 
     # Generate test via OpenAI API
     response=$(curl -s https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d @- <<EOF
-{
-  "model": "$MODEL",
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are a Java developer who writes complete and valid JUnit 5 tests."
-    },
-    {
-      "role": "user",
-      "content": "Write JUnit 5 test cases for the following class:\n\n$class_content"
-    }
-  ],
-  "temperature": 0.3
-}
-EOF
+      -d @request.json
     )
 
     # Extract the code block from response (assuming Markdown-style output)

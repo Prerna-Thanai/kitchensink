@@ -16,8 +16,12 @@ jobs:
       - uses: actions/checkout@v3
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Fetch origin/main
+        run: git fetch origin main
       - name: Grant execute permissions to script
         run: chmod +x scripts/generate-tests.sh
+      - name: Show changed files
+        run: git diff --name-only origin/main...HEAD -- '*.java'
       - name: Run test generator script
         run: ./scripts/generate-tests.sh
       - name: Commit generated tests

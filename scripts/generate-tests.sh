@@ -47,6 +47,7 @@ EOF
     )
 
     # Extract the code block from response (assuming Markdown-style output)
+    echo "Response: $response"
     test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')
 
     # Fallback if no code block

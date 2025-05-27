@@ -26,13 +26,11 @@ for file in $files; do
     rm request.json
     jq -n \
     --arg model "$MODEL" \
-    --arg sys "You are a Java developer who writes complete and valid JUnit 5 tests." \
-    --arg content "Write JUnit 5 test cases for the following class:\n\n$CLASS_CONTENT" \
+    --arg content "Write JUnit 5 test cases of Spring boot 3+ with mockito for the following class:\n\n$CLASS_CONTENT" \
     --argjson temp 0.3 \
     '{
       model: $model,
       messages: [
-        { role: "system", content: $sys },
         { role: "user", content: $content }
       ],
       temperature: $temp

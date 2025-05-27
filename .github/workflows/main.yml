@@ -8,6 +8,9 @@ on:
     paths: # Add this section to filter by file paths
       - 'src/main/java/**/*.java' # Only trigger if Java files in src/main/java are changed
 
+permissions:
+  contents: write # Allow the action to write to the repository
+  pull-requests: write # Allow the action to create and update pull requests
 
 jobs:
   generate-tests:
@@ -17,6 +20,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: ${{ steps.base-depth.outputs.base-depth }}
+          token: ${{ secrets.PAT_TOKEN }}
       - name: Fetch origin/main
         run: git fetch origin main
       - name: Grant execute permissions to script

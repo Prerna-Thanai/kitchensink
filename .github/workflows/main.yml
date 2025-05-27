@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: ${{ steps.base-depth.outputs.base-depth }}
       - name: Fetch origin/main
         run: git fetch origin main

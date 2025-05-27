@@ -5,6 +5,7 @@ set -e
 MODEL="gpt-4.1-nano"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
+git fetch origin main
 files=$(git diff --name-only origin/main...HEAD -- '*.java' | grep -v "$TEST_DIR")
 echo $(pwd)
 echo 'Files: ' $files

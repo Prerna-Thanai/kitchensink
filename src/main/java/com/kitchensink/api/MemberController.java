@@ -44,7 +44,7 @@ public class MemberController {
         return ResponseEntity.ok(memberDto);
     }
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<PagedModel<Member>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
         @RequestParam(value = "showInactiveMembers", required = false) boolean showInactiveMembers) {
         Page<Member> members = memberService.getAllMembers(pageable, showInactiveMembers);

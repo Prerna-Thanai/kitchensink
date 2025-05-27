@@ -2,23 +2,21 @@ package com.kitchensink.api;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kitchensink.config.security.JwtTokenProvider;
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.service.LoginService;
-import com.kitchensink.service.MemberService;
+import com.kitchensink.dto.RegisterMemberDto;
+import com.kitchensink.service.MemberRegistrationService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,47 +30,31 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping(value = "/api/auth")
-public class AuthController {
+public class MemberRegistrationController {
 
-    private final LoginService loginService;
-
-    private final MemberService memberService;
+    private final MemberRegistrationService memberRegistrationService;
 
     private final String refreshCookiePath;
 
     private final JwtTokenProvider tokenProvider;
 
-    public AuthController(LoginService loginService, MemberService memberService,
+    public MemberRegistrationController(MemberRegistrationService memberRegistrationService,
         @Value("${jwt.refresh.cookie.path:/}") String refreshCookiePath, JwtTokenProvider tokenProvider) {
-        this.loginService = loginService;
-        this.memberService = memberService;
+        this.memberRegistrationService = memberRegistrationService;
         this.refreshCookiePath = refreshCookiePath;
         this.tokenProvider = tokenProvider;
     }
 
-    @Operation(summary = "Login")
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member logged in successfully"),
-            @ApiResponse(responseCode = "401", description = "Invalid email or password"), @ApiResponse(
-                responseCode = "500", description = "Internal server error") })
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
-        Authentication login = loginService.login(loginRequestDto);
+    private static final Logger log = LoggerFactory.getLogger(MemberRegistrationService.class);
 
-        return getTokenCookiesResponseEntity(login, "Logged-in successful");
-    }
-
-    @Operation(summary = "Refresh")
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "token refreshed successfully"),
-            @ApiResponse(responseCode = "401", description = "Invalid refresh token"), @ApiResponse(
-                responseCode = "500", description = "Internal server error") })
-    @GetMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refreshToken(@CookieValue(value = "refresh_token",
-        required = false) String refreshToken, Authentication authentication) {
-        if (refreshToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Refresh token is missing"));
-        }
-        tokenProvider.validateRefreshToken(authentication, refreshToken);
-        return getTokenCookiesResponseEntity(authentication, "Refreshed successful");
+    @Operation(summary = "Register a new member")
+    @ApiResponses(value = { @ApiResponse(responseCode = "201", description = "Member registered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"), @ApiResponse(responseCode = "500",
+                description = "Internal server error") })
+    @PostMapping("/register")
+    public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody RegisterMemberDto newMember) {
+        Authentication registeredMember = memberRegistrationService.register(newMember);
+        return getTokenCookiesResponseEntity(registeredMember, "Registration successful");
     }
 
     private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication,

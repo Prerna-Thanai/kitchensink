@@ -1,16 +1,21 @@
 package com.kitchensink.service;
 
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.RegisterMemberDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
-public interface MemberService{
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
 
-     Authentication login(LoginRequestDto loginRequestDto);
+public interface MemberService {
 
-     Authentication register(RegisterMemberDto newMember);
+    MemberDto currentUserData(Authentication authentication);
 
-     MemberDto currentUserData(Authentication authentication);
+    Page<Member> getAllMembers(Pageable pageable, boolean showInactiveMembers);
+
+    void deleteMemberById(String memberId);
+
+    Member updateMemberDetails(String memberId, UpdateMemberRequest updateRequest);
 
 }

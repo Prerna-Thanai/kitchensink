@@ -2,7 +2,7 @@ name: Generate JUnit Tests v2
 
 on:
   pull_request: # Trigger on pull request events
-    types: [opened, reopened, synchronize] # Specifically when a PR is opened or reopened
+    types: [opened, reopened] # Specifically when a PR is opened or reopened
     branches:
       - main # Target branch for the pull request
     paths: # Add this section to filter by file paths

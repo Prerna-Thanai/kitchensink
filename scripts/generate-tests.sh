@@ -10,7 +10,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo "Error: OPENAI_API_KEY is not set."
     exit 1
 fi
-MODEL="gpt-3.5-turbo"
+MODEL="o4-mini"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
 files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '*.java' | grep -v "$TEST_DIR")
@@ -37,7 +37,7 @@ for file in $files; do
     }' > request.json
 
     # Generate test via OpenAI API
-    response=$(curl -s https://api.openai.com/v1/chat/completions \
+    response=$(curl -s https://api.openai.com/v/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
       -d @request.json
@@ -54,7 +54,13 @@ for file in $files; do
     fi
 
     # Save generated test file
+    package_line=$(grep "^package " "$file")
+    package_name=${package_line//package /}
+    package_name=${package_name//;/}
+    package_dir=$(echo "$package_name" | tr '.' '/')
+    output_dir="$TEST_DIR/$package_dir"
+    mkdir -p "$output_dir"
     base_name=$(basename "$file" .java)
-    echo "$test_code" > "$TEST_DIR/generated/${base_name}Test.java"
-    echo "Generated test saved to $TEST_DIR/generated/${base_name}Test.java"
+    echo "$test_code" > "$output_dir${base_name}AiTest.java"
+    echo "Generated test saved to $output_dir${base_name}AiTest.java"
 done

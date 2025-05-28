@@ -24,6 +24,7 @@ public class AuthServiceImpl implements UserDetailsService{
         if(member == null){
             throw new UsernameNotFoundException("User with email " + email + " not found");
         }
+        
         return User.withUsername(email)
                    .password(member.getPassword())
                    .authorities(member.getRoles().stream()

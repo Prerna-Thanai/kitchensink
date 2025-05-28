@@ -69,7 +69,6 @@ public class MemberServiceImpl implements MemberService {
         }
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         Member member = memberRepository.findByEmail(userDetails.getUsername());
-        
         return MemberDto.builder().name(member.getName()).email(member.getEmail()).isActive(member.isActive())
             .phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).build();
     }

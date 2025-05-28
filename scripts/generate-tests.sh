@@ -10,7 +10,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo "Error: OPENAI_API_KEY is not set."
     exit 1
 fi
-MODEL="o4-mini"
+MODEL="gpt-4o-mini"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
 files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '*.java' | grep -v "$TEST_DIR")

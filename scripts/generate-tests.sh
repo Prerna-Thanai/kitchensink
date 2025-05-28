@@ -23,7 +23,6 @@ for file in $files; do
 
     # Extract class content
     class_content=$(cat "$file")
-    rm request.json
     jq -n \
     --arg model "$MODEL" \
     --arg content "Write JUnit 5 test cases of Spring boot 3+ with mockito for the following class:\n\n$CLASS_CONTENT" \
@@ -37,12 +36,13 @@ for file in $files; do
     }' > request.json
 
     # Generate test via OpenAI API
-    response=$(curl -s https://api.openai.com/v/chat/completions \
+    response=$(curl -s https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
       -d @request.json
     )
 
+    rm request.json
     # Extract the code block from response (assuming Markdown-style output)
     echo "Response: $response"
     test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')

@@ -1,5 +1,7 @@
 package com.kitchensink.repository;
 
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -22,7 +24,7 @@ public interface MemberRepository extends MongoRepository<Member, String> {
      *            the email
      * @return the member
      */
-    Member findByEmail(String email);
+    Optional<Member> findByEmail(String email);
 
     /**
      * Find by phone number.

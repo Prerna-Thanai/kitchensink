@@ -68,9 +68,16 @@ public class MemberServiceImpl implements MemberService {
                 ErrorType.MEMBER_NOT_AUTHENTICATED);
         }
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Member member = memberRepository.findByEmail(userDetails.getUsername());
+        Optional<Member> memberOptional = memberRepository.findByEmail(userDetails.getUsername());
+
+        // empty check not required as this api will be called only if the token is valid i.e. user exists in db
+        if (!memberOptional.get().isActive() || !memberOptional.get().isBlocked()) {
+            // throw error that user is not active or blocked
+        }
+        Member member = memberOptional.get();
         return MemberDto.builder().name(member.getName()).email(member.getEmail()).isActive(member.isActive())
-            .phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).build();
+            .isBlocked(member.isBlocked()).phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).joiningDate(
+                member.getCreatedAt().toLocalDate()).build();
     }
 
     // private Authentication authenticate(String username, String password) {

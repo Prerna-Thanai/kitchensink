@@ -1,5 +1,7 @@
 package com.kitchensink.service.impl;
 
+import java.util.Optional;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -48,8 +50,8 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     public Authentication register(RegisterMemberDto newMember) {
         log.info("Registering {}", newMember.getEmail());
         // Check if member with same email or phone number already exists
-        Member existingMemberByEmail = memberRepository.findByEmail(newMember.getEmail());
-        if (existingMemberByEmail != null) {
+        Optional<Member> existingMemberByEmailOptional = memberRepository.findByEmail(newMember.getEmail());
+        if (existingMemberByEmailOptional.isPresent()) {
             log.error("Member with email {} already exists", newMember.getEmail());
             throw new com.kitchensink.exception.AuthenticationException("Member with email " + newMember.getEmail()
                 + " already exists", ErrorType.EMAIL_ALREADY_REGISTERED);

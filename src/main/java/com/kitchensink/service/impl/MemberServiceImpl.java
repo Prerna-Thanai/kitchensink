@@ -113,13 +113,12 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public void deleteMemberById(String memberId) {
-        // TODO update code to get data based on active/inactive
-
         // soft delete
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
-            // throw new RegisterUserException();
-            // TODO throw exception;
+            log.error("Member with memberId {} doesn't exist", memberId);
+            throw new AuthenticationException("Member with memberId " + memberId + "doesn't exist",
+                ErrorType.MEMBER_NOT_FOUND);
         }
         memberOptional.get().setActive(false);
         memberRepository.save(memberOptional.get());
@@ -128,11 +127,15 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest) {
-        // TODO update to throw specific exception
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new RuntimeException(
-            "Member not found with id: " + memberId));
+        Optional<Member> memberOptional = memberRepository.findById(memberId);
+        if (memberOptional.isEmpty()) {
+            log.error("Member with memberId {} doesn't exist", memberId);
+            throw new AuthenticationException("Member with memberId " + memberId + "doesn't exist",
+                ErrorType.MEMBER_NOT_FOUND);
+        }
 
         // Only update allowed fields
+        Member member = memberOptional.get();
         member.setName(updateRequest.getName());
         member.setPhoneNumber(updateRequest.getPhoneNumber());
         member.setBlocked(updateRequest.isBlocked());

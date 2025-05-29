@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import com.kitchensink.dto.RegisterMemberDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AuthenticationException;
+import com.kitchensink.exception.ConflictException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberRegistrationService;
 
@@ -53,13 +53,13 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         Optional<Member> existingMemberByEmailOptional = memberRepository.findByEmail(newMember.getEmail());
         if (existingMemberByEmailOptional.isPresent()) {
             log.error("Member with email {} already exists", newMember.getEmail());
-            throw new com.kitchensink.exception.AuthenticationException("Member with email " + newMember.getEmail()
-                + " already exists", ErrorType.EMAIL_ALREADY_REGISTERED);
+            throw new ConflictException("Member with email " + newMember.getEmail() + " already exists",
+                ErrorType.EMAIL_ALREADY_REGISTERED);
         }
         Member existingMemberByPhone = memberRepository.findByPhoneNumber(newMember.getPhoneNumber());
         if (existingMemberByPhone != null) {
             log.error("Member with phone number {} already exists", newMember.getPhoneNumber());
-            throw new AuthenticationException("Member with phone number " + newMember.getPhoneNumber() + " already "
+            throw new ConflictException("Member with phone number " + newMember.getPhoneNumber() + " already "
                 + "exists", ErrorType.USER_ALREADY_EXISTS);
         }
         Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).active(true).phoneNumber(

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AuthenticationException;
+import com.kitchensink.service.impl.AuthServiceImpl;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -30,6 +31,8 @@ public class JwtTokenProvider {
     public static final String ACCESS_TOKEN = "access";
     public static final String REFRESH_TOKEN = "refresh";
 
+    private final AuthServiceImpl authService;
+
     @Getter
     private final Duration jwtAccessExpiration;
 
@@ -38,9 +41,11 @@ public class JwtTokenProvider {
 
     private final Key key;
 
-    public JwtTokenProvider(@Value("${jwt.access.expiration:24h}") Duration jwtAccessExpiration,
+    public JwtTokenProvider(AuthServiceImpl authService,
+        @Value("${jwt.access.expiration:24h}") Duration jwtAccessExpiration,
         @Value("${jwt.refresh.expiration:7d}") Duration jwtRefreshExpiration,
         @Value("${jwt.secret:app$3cr37$##}") String jwtSecret) {
+        this.authService = authService;
         this.jwtAccessExpiration = jwtAccessExpiration;
         this.jwtRefreshExpiration = jwtRefreshExpiration;
         key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
@@ -106,9 +111,9 @@ public class JwtTokenProvider {
     }
 
     public void validateRefreshToken(Authentication authentication, String token) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AuthenticationException("Member not authenticated", ErrorType.MEMBER_NOT_AUTHENTICATED);
-        }
+         if (authentication == null || !authentication.isAuthenticated()) {
+         throw new AuthenticationException("Member not authenticated", ErrorType.MEMBER_NOT_AUTHENTICATED);
+         }
         validateToken(authentication, token, REFRESH_TOKEN);
     }
 
@@ -124,6 +129,10 @@ public class JwtTokenProvider {
             }
             if (authentication != null && !getUsernameFromClaims(claims).equals(authentication.getName())) {
                 throw new AuthenticationException("Invalid user", ErrorType.TOKEN_INVALID);
+            }
+
+            if (authentication != null) {
+                authService.loadUserByUsername(authentication.getName());
             }
         } catch (JwtException | IllegalArgumentException e) {
             log.error("Invalid JWT Refresh token: {}", token, e);

@@ -62,9 +62,9 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
             throw new AuthenticationException("Member with phone number " + newMember.getPhoneNumber() + " already "
                 + "exists", ErrorType.USER_ALREADY_EXISTS);
         }
-        Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).isActive(true)
-            .phoneNumber(newMember.getPhoneNumber()).password(encryptPassword(newMember.getPassword())).roles(newMember
-                .getRoles()).build();
+        Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).active(true).phoneNumber(
+            newMember.getPhoneNumber()).password(encryptPassword(newMember.getPassword())).roles(newMember.getRoles())
+            .build();
         memberRepository.insert(member);
         return authenticate(newMember.getEmail(), newMember.getPassword());
     }

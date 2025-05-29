@@ -107,4 +107,21 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Not authenticated
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout() {
+        return getTokenRemovalCookiesResponseEntity();
+    }
+
+    public ResponseEntity<Map<String, Object>> getTokenRemovalCookiesResponseEntity() {
+        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true).path("/").maxAge(0)
+            .build();
+
+        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true).path(
+            refreshCookiePath) // should match path used when setting it
+            .maxAge(0).build();
+
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(
+            HttpHeaders.SET_COOKIE, clearRefreshToken.toString()).body(Map.of("message", "Logged out successfully"));
+    }
+
 }

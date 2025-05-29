@@ -111,9 +111,9 @@ public class JwtTokenProvider {
     }
 
     public void validateRefreshToken(Authentication authentication, String token) {
-         if (authentication == null || !authentication.isAuthenticated()) {
-         throw new AuthenticationException("Member not authenticated", ErrorType.MEMBER_NOT_AUTHENTICATED);
-         }
+        // if (authentication == null || !authentication.isAuthenticated()) {
+        // throw new AuthenticationException("Member not authenticated", ErrorType.MEMBER_NOT_AUTHENTICATED);
+        // }
         validateToken(authentication, token, REFRESH_TOKEN);
     }
 

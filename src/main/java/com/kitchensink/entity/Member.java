@@ -39,6 +39,10 @@ public class Member {
 
     private boolean blocked = false;
 
+    private int failedLoginAttempts;
+
+    private LocalDateTime blockedAt;
+
     private List<String> roles;
 
     @CreatedDate

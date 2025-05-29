@@ -2,12 +2,18 @@ package com.kitchensink.service.impl;
 
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.dto.RegisterMemberDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
@@ -29,6 +35,14 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     private final MemberRepository memberRepository;
 
     private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private final String phoneValidationUrl = "https://phonevalidation.abstractapi.com/v1/?api_key=";
+
+    @Value("${phone.validation.apikey:123}")
+    private String phoneValidationKey;
 
     public MemberRegistrationServiceImpl(AuthenticationManager authenticationManager, MemberRepository memberRepository,
         PasswordEncoder passwordEncoder) {
@@ -62,11 +76,30 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
             throw new ConflictException("Member with phone number " + newMember.getPhoneNumber() + " already "
                 + "exists", ErrorType.USER_ALREADY_EXISTS);
         }
+        // disabling for now but this is working
+        // if (!validatePhone(newMember.getPhoneNumber())) {
+        // throw new AuthenticationException("Phone number " + newMember.getPhoneNumber() + " is invalid",
+        // ErrorType.PHONE_NUMBER_INVALID);
+        // }
         Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).active(true).phoneNumber(
             newMember.getPhoneNumber()).password(encryptPassword(newMember.getPassword())).roles(newMember.getRoles())
             .build();
         memberRepository.insert(member);
         return authenticate(newMember.getEmail(), newMember.getPassword());
+    }
+
+    private boolean validatePhone(String phoneNumber) {
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(phoneValidationUrl + phoneValidationKey
+                + "&phone=" + phoneNumber, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            boolean isValid = jsonNode.path("valid").asBoolean();
+            return isValid;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private Authentication authenticate(String username, String password) {

@@ -138,8 +138,13 @@ public class MemberServiceImpl implements MemberService {
         Member member = memberOptional.get();
         member.setName(updateRequest.getName());
         member.setPhoneNumber(updateRequest.getPhoneNumber());
-        member.setBlocked(updateRequest.isBlocked());
         member.setRoles(updateRequest.getRoles());
+
+        if (updateRequest.isUnBlockMember()) {
+            member.setBlocked(false);
+            member.setFailedLoginAttempts(0);
+            member.setBlockedAt(null);
+        }
 
         Member savedMember = memberRepository.save(member);
         return MemberDto.builder().id(member.getId()).name(savedMember.getName()).email(savedMember.getEmail())

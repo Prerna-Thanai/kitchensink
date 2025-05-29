@@ -14,6 +14,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AuthenticationException;
 
 import jakarta.servlet.FilterChain;
@@ -44,6 +45,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
             String token = getTokenFromRequest(request);
+            if (token == null || token.isEmpty()) {
+                String refreshToken = getRefreshTokenFromRequest(request);
+                if (refreshToken == null || refreshToken.isEmpty()) {
+                    throw new AuthenticationException("Token is missing", ErrorType.TOKEN_NOT_FOUND);
+                }
+                jwtTokenProvider.validateRefreshToken(null, refreshToken);
+                String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+                String updatedAccessToken = jwtTokenProvider.generateAccessToken(authentication);
+                String updatedRefreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+                setTokenCookie(response, updatedAccessToken, updatedRefreshToken);
+                token = updatedAccessToken;
+            }
             jwtTokenProvider.validateAccessToken(token);
             String username = jwtTokenProvider.getUsernameFromToken(token);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -69,17 +86,50 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
+    private String getRefreshTokenFromRequest(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+
+    }
+
     private String getTokenFromRequest(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
-        for (Cookie cookie : request.getCookies()) {
-            if ("access_token".equals(cookie.getName())) {
-                return cookie.getValue();
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
             }
+
         }
         return null;
+    }
+
+    private void setTokenCookie(HttpServletResponse response, String access_token, String refresh_token) {
+        Cookie accessTokenCookie = new Cookie("access_token", access_token);
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(true); // Use only with HTTPS
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtAccessExpiration().getSeconds()); // Set max age to
+                                                                                                   // match expiry
+        response.addCookie(accessTokenCookie);
+
+        Cookie refreshTokenCookie = new Cookie("refresh_token", access_token);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true); // Use only with HTTPS
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtRefreshExpiration().getSeconds()); // Set max age to
+                                                                                                     // match expiry
+        response.addCookie(refreshTokenCookie);
     }
 
 }

@@ -27,6 +27,6 @@ public class UpdateMemberRequest {
     @Size(min = 1, max = 10, message = "Max of 10 roles can be assigned")
     private List<String> roles;
 
-    private boolean blocked;
+    private boolean unBlockMember = false;
 
 }

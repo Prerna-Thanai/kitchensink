@@ -7,7 +7,7 @@ public enum ErrorType {
     USER_ALREADY_EXISTS("User already exists"), EMAIL_ALREADY_REGISTERED("Email is already registered"), TOKEN_EXPIRED(
         "Token has expired"), TOKEN_INVALID("Token is invalid"), TOKEN_NOT_FOUND("Token not found"),
     MEMBER_NOT_AUTHENTICATED("Member is not authenticated"), MEMBER_NOT_FOUND("Member not found"), ACCOUNT_BLOCKED(
-        "Account blocked");
+        "Account blocked"), PHONE_NUMBER_INVALID("Phone number is invalid");
 
     private final String message;
 

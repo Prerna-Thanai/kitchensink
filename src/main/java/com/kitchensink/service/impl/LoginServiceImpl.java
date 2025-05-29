@@ -1,8 +1,10 @@
 package com.kitchensink.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -42,11 +44,29 @@ public class LoginServiceImpl implements LoginService {
             throw new AuthenticationException("Account blocked for member with email " + loginRequestDto.getEmail(),
                 ErrorType.ACCOUNT_BLOCKED);
         }
-        return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        try {
+            return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        } catch (BadCredentialsException e) {
+            processFailedLogin(loginRequestDto.getEmail());
+            throw e;
+        }
     }
 
     private Authentication authenticate(String username, String password) {
         return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+    }
+
+    private void processFailedLogin(String email) {
+        Optional<Member> memberOptional = memberRepository.findByEmail(email);
+        int attempts = memberOptional.get().getFailedLoginAttempts() + 1;
+        memberOptional.get().setFailedLoginAttempts(attempts);
+
+        if (attempts >= 3) {
+            memberOptional.get().setBlocked(true);
+            memberOptional.get().setBlockedAt(LocalDateTime.now());
+        }
+
+        memberRepository.save(memberOptional.get());
     }
 
 }

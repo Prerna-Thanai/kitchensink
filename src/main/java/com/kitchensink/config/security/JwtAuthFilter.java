@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.kitchensink.enums.ErrorType;
@@ -28,6 +29,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
 
     private final UserDetailsService userDetailsService;
+
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public JwtAuthFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
         this.jwtTokenProvider = jwtTokenProvider;
@@ -86,6 +89,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
     }
 
+    private void setTokenCookie(HttpServletResponse response, String access_token, String refresh_token) {
+        Cookie accessTokenCookie = new Cookie("access_token", access_token);
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtAccessExpiration().getSeconds());
+        response.addCookie(accessTokenCookie);
+
+        Cookie refreshTokenCookie = new Cookie("refresh_token", access_token);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtRefreshExpiration().getSeconds());
+        response.addCookie(refreshTokenCookie);
+    }
+
     private String getRefreshTokenFromRequest(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
@@ -112,24 +129,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         }
         return null;
-    }
-
-    private void setTokenCookie(HttpServletResponse response, String access_token, String refresh_token) {
-        Cookie accessTokenCookie = new Cookie("access_token", access_token);
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setSecure(true); // Use only with HTTPS
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtAccessExpiration().getSeconds()); // Set max age to
-                                                                                                   // match expiry
-        response.addCookie(accessTokenCookie);
-
-        Cookie refreshTokenCookie = new Cookie("refresh_token", access_token);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(true); // Use only with HTTPS
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtRefreshExpiration().getSeconds()); // Set max age to
-                                                                                                     // match expiry
-        response.addCookie(refreshTokenCookie);
     }
 
 }

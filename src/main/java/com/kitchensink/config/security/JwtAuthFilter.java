@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.kitchensink.exception.AuthenticationException;
@@ -24,62 +25,64 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
+	private final JwtTokenProvider jwtTokenProvider;
 
-    private final UserDetailsService userDetailsService;
+	private final UserDetailsService userDetailsService;
 
-    public JwtAuthFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userDetailsService = userDetailsService;
-    }
+	private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-        throws IOException {
-        try {
-            String path = request.getRequestURI();
-            boolean shouldSkip = Arrays.stream(PUBLIC_URLS).anyMatch(path::startsWith);
-            if (shouldSkip) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            String token = getTokenFromRequest(request);
-            jwtTokenProvider.validateAccessToken(token);
-            String username = jwtTokenProvider.getUsernameFromToken(token);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+	public JwtAuthFilter(JwtTokenProvider jwtTokenProvider, UserDetailsService userDetailsService) {
+		this.jwtTokenProvider = jwtTokenProvider;
+		this.userDetailsService = userDetailsService;
+	}
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
-                null, userDetails.getAuthorities());
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws IOException {
+		try {
+			String path = request.getRequestURI();
+			boolean shouldSkip = Arrays.stream(PUBLIC_URLS).anyMatch(pattern -> pathMatcher.match(pattern, path));
+			if (shouldSkip) {
+				filterChain.doFilter(request, response);
+				return;
+			}
+			String token = getTokenFromRequest(request);
+			jwtTokenProvider.validateAccessToken(token);
+			String username = jwtTokenProvider.getUsernameFromToken(token);
+			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            filterChain.doFilter(request, response);
-        } catch (AuthenticationException e) {
-            logger.error("Authentication error:", e);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"message\": \"" + e.getMessage() + "\"}");
-        } catch (Exception e) {
-            logger.error("Authentication error:", e);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("""
-                {"message" : "An error occurred while processing the request."}
-                """);
-        }
-    }
+			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
+					null, userDetails.getAuthorities());
 
-    private String getTokenFromRequest(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-        for (Cookie cookie : request.getCookies()) {
-            if ("access_token".equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
-    }
+			authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+			filterChain.doFilter(request, response);
+		} catch (AuthenticationException e) {
+			logger.error("Authentication error:", e);
+			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			response.getWriter().write("{\"message\": \"" + e.getMessage() + "\"}");
+		} catch (Exception e) {
+			logger.error("Authentication error:", e);
+			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			response.getWriter().write("""
+					{"message" : "An error occurred while processing the request."}
+					""");
+		}
+	}
+
+	private String getTokenFromRequest(HttpServletRequest request) {
+		String header = request.getHeader("Authorization");
+		if (header != null && header.startsWith("Bearer ")) {
+			return header.substring(7);
+		}
+		for (Cookie cookie : request.getCookies()) {
+			if ("access_token".equals(cookie.getName())) {
+				return cookie.getValue();
+			}
+		}
+		return null;
+	}
 
 }

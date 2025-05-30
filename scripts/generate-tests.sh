@@ -20,6 +20,8 @@ for file in $files; do
     response=$(curl -s -v https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
+      -H "OpenAI-Organization: org-qtcv6C39wOH1EepYAv4kxk2F" \
+      -H "OpenAI-Project: proj_pQHHCDdPXoklAe5nUVTvsrQ5" \
       -d @- <<EOF
 {
   "model": "$MODEL",

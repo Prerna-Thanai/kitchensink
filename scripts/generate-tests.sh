@@ -35,6 +35,7 @@ for file in $files; do
       temperature: $temp
     }' > request.json
     echo $class_content
+    echo '------------'
     echo $CLASS_CONTENT
     cat request.json
     # Generate test via OpenAI API

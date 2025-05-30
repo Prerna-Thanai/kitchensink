@@ -2,7 +2,7 @@
 # set -e
 
 # Configuration
-MODEL="gpt-4.1-nano"
+MODEL="gpt-4"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
 files=$(git diff --name-only origin/main...HEAD -- '*.java' | grep -v "$TEST_DIR")

@@ -38,6 +38,7 @@ public class AuthController {
 
     private final MemberService memberService;
 
+    
     private final String refreshCookiePath;
 
     private final JwtTokenProvider tokenProvider;

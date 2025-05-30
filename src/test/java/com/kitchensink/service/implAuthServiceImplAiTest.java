@@ -30,82 +30,58 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testLoadUserByUsername_UserFoundAndActive() {
-        // Arrange
-        String email = "test@example.com";
-        Member member = new Member();
-        member.setEmail(email);
-        member.setPassword("password");
-        member.setActive(true);
-        member.setBlocked(false);
-        member.setRoles(Collections.singletonList("ROLE_USER"));
-
-        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(member));
-
-        // Act
-        UserDetails userDetails = authService.loadUserByUsername(email);
-
-        // Assert
-        assertNotNull(userDetails);
-        assertEquals(email, userDetails.getUsername());
-        assertEquals("password", userDetails.getPassword());
-        assertTrue(userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
-        assertTrue(userDetails.isEnabled());
-    }
-
-    @Test
     void testLoadUserByUsername_UserNotFound() {
-        // Arrange
-        String email = "notfound@example.com";
+        String email = "nonexistent@example.com";
         when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.empty());
 
-        // Act & Assert
         UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
             authService.loadUserByUsername(email);
         });
+
         assertEquals("User with email " + email + " not found", exception.getMessage());
     }
 
     @Test
-    void testLoadUserByUsername_UserBlocked() {
-        // Arrange
+    void testLoadUserByUsername_UserIsBlocked() {
         String email = "blocked@example.com";
-        Member member = new Member();
-        member.setEmail(email);
-        member.setPassword("password");
-        member.setActive(true);
-        member.setBlocked(true);
-        member.setRoles(Collections.singletonList("ROLE_USER"));
+        Member blockedMember = new Member();
+        blockedMember.setEmail(email);
+        blockedMember.setBlocked(true);
+        blockedMember.setActive(true);
+        blockedMember.setPassword("password");
+        blockedMember.setRoles(Collections.emptyList());
 
-        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(member));
+        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(blockedMember));
 
-        // Act & Assert
         UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
             authService.loadUserByUsername(email);
         });
+
         assertEquals("User with email " + email + " is blocked", exception.getMessage());
     }
 
     @Test
-    void testLoadUserByUsername_UserNotActive() {
-        // Arrange
-        String email = "inactive@example.com";
-        Member member = new Member();
-        member.setEmail(email);
-        member.setPassword("password");
-        member.setActive(false);
-        member.setBlocked(false);
-        member.setRoles(Collections.singletonList("ROLE_USER"));
+    void testLoadUserByUsername_UserIsActive() {
+        String email = "active@example.com";
+        Member activeMember = new Member();
+        activeMember.setEmail(email);
+        activeMember.setBlocked(false);
+        activeMember.setActive(true);
+        activeMember.setPassword("password");
+        activeMember.setRoles(Collections.singletonList("ROLE_USER"));
 
-        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(member));
+        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(activeMember));
 
-        // Act
         UserDetails userDetails = authService.loadUserByUsername(email);
 
-        // Assert
         assertNotNull(userDetails);
         assertEquals(email, userDetails.getUsername());
         assertEquals("password", userDetails.getPassword());
-        assertFalse(userDetails.isEnabled());
+        assertTrue(userDetails.isEnabled());
+        assertFalse(userDetails.isAccountNonLocked());
+        assertFalse(userDetails.isCredentialsNonExpired());
+        assertFalse(userDetails.isAccountNonExpired());
+        assertEquals(1, userDetails.getAuthorities().size());
+        assertTrue(userDetails.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_USER")));
     }
 }

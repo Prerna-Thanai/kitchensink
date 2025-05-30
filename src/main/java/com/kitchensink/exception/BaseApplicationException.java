@@ -1,16 +1,41 @@
 package com.kitchensink.exception;
 
+import org.springframework.http.HttpStatus;
+
 import com.kitchensink.enums.ErrorType;
 
 public class BaseApplicationException extends RuntimeException {
-    private final ErrorType errorType;
 
-    public BaseApplicationException(String message, ErrorType errorType) {
+    /** The Constant serialVersionUID. */
+    private static final long serialVersionUID = 1L;
+
+    private final ErrorType errorType;
+    private final HttpStatus status;
+
+    public BaseApplicationException(String message, ErrorType errorType, HttpStatus status) {
         super(message);
         this.errorType = errorType;
+        this.status = status;
     }
-    public BaseApplicationException(String message, Throwable cause, ErrorType errorType) {
+
+    public BaseApplicationException(String message, Throwable cause, ErrorType errorType, HttpStatus status) {
         super(message, cause);
         this.errorType = errorType;
+        this.status = status;
     }
+
+    /**
+     * @return the errorType
+     */
+    public ErrorType getErrorType() {
+        return errorType;
+    }
+
+    /**
+     * @return the status
+     */
+    public HttpStatus getStatus() {
+        return status;
+    }
+
 }

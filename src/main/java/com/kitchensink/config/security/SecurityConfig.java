@@ -25,7 +25,8 @@ public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
     public static final String[] PUBLIC_URLS = { "/api/auth/login", "/api/auth/register", "/api/token",
-            "/swagger-ui/**", "/v3/api-docs/**", "/actuator/health/**", "/api/version" };
+            "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs", "/v3/api-docs/swagger-config",
+            "/actuator/health/**", "/api/version" };
     private final JwtAuthFilter jwtAuthFilter;
     private final String allowedOrigins;
 

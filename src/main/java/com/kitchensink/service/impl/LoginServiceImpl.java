@@ -1,11 +1,19 @@
 package com.kitchensink.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import com.kitchensink.dto.LoginRequestDto;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AuthenticationException;
+import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.LoginService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -16,18 +24,49 @@ public class LoginServiceImpl implements LoginService {
 
     private final AuthenticationManager authenticationManager;
 
-    public LoginServiceImpl(AuthenticationManager authenticationManager) {
+    private final MemberRepository memberRepository;
+
+    public LoginServiceImpl(AuthenticationManager authenticationManager, MemberRepository memberRepository) {
         this.authenticationManager = authenticationManager;
+        this.memberRepository = memberRepository;
     }
 
     @Override
     public Authentication login(LoginRequestDto loginRequestDto) {
         log.info("Logging in with email: {}", loginRequestDto.getEmail());
-        return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        Optional<Member> loggingUser = memberRepository.findByEmail(loginRequestDto.getEmail());
+        if (loggingUser.isEmpty() || loggingUser.isPresent() && !loggingUser.get().isActive()) {
+            log.error("Member with email {} doesn't exist", loginRequestDto.getEmail());
+            throw new AuthenticationException("Member with email " + loginRequestDto.getEmail() + " doesn't exist",
+                ErrorType.MEMBER_NOT_FOUND);
+        } else if (loggingUser.isPresent() && loggingUser.get().isBlocked()) {
+            log.error("Account blocked for member with email {}", loginRequestDto.getEmail());
+            throw new AuthenticationException("Account blocked for member with email " + loginRequestDto.getEmail(),
+                ErrorType.ACCOUNT_BLOCKED);
+        }
+        try {
+            return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+        } catch (BadCredentialsException e) {
+            processFailedLogin(loginRequestDto.getEmail());
+            throw e;
+        }
     }
 
     private Authentication authenticate(String username, String password) {
         return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+    }
+
+    private void processFailedLogin(String email) {
+        Optional<Member> memberOptional = memberRepository.findByEmail(email);
+        int attempts = memberOptional.get().getFailedLoginAttempts() + 1;
+        memberOptional.get().setFailedLoginAttempts(attempts);
+
+        if (attempts >= 3) {
+            memberOptional.get().setBlocked(true);
+            memberOptional.get().setBlockedAt(LocalDateTime.now());
+        }
+
+        memberRepository.save(memberOptional.get());
     }
 
 }

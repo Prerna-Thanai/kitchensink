@@ -1,8 +1,11 @@
 package com.kitchensink.service.impl;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -75,9 +78,9 @@ public class MemberServiceImpl implements MemberService {
             // throw error that user is not active or blocked
         }
         Member member = memberOptional.get();
-        return MemberDto.builder().name(member.getName()).email(member.getEmail()).isActive(member.isActive())
-            .isBlocked(member.isBlocked()).phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).joiningDate(
-                member.getCreatedAt().toLocalDate()).build();
+        return MemberDto.builder().name(member.getName()).email(member.getEmail()).active(member.isActive()).blocked(
+            member.isBlocked()).phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).joiningDate(member
+                .getCreatedAt().toLocalDate()).build();
     }
 
     // private Authentication authenticate(String username, String password) {
@@ -89,23 +92,33 @@ public class MemberServiceImpl implements MemberService {
     // }
 
     @Override
-    public Page<Member> getAllMembers(Pageable pageable, boolean showInactiveMembers) {
+    public Page<MemberDto> getAllMembers(Pageable pageable, boolean showInactiveMembers) {
         if (showInactiveMembers) {
-            return memberRepository.findAll(pageable); // Show all users
+            return tranformMember(memberRepository.findAll(pageable)); // Show all users
         } else {
-            return memberRepository.findByIsActiveTrue(pageable); // Only active users
+            return tranformMember(memberRepository.findByActiveTrue(pageable)); // Only active users
         }
+    }
+
+    private Page<MemberDto> tranformMember(Page<Member> membersPage) {
+
+        List<MemberDto> memberDTOs = membersPage.getContent().stream().map((Member member) -> MemberDto.builder().id(
+            member.getId()).name(member.getName()).email(member.getEmail()).phoneNumber(member.getPhoneNumber()).roles(
+                member.getRoles()).joiningDate(member.getCreatedAt().toLocalDate()).active(member.isActive()).blocked(
+                    member.isBlocked()).build()).collect(Collectors.toList());
+
+        // Create a new PageImpl with the converted content and original pagination info
+        return new PageImpl<>(memberDTOs, membersPage.getPageable(), membersPage.getTotalElements());
     }
 
     @Override
     public void deleteMemberById(String memberId) {
-        // TODO update code to get data based on active/inactive
-
         // soft delete
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
-            // throw new RegisterUserException();
-            // TODO throw exception;
+            log.error("Member with memberId {} doesn't exist", memberId);
+            throw new AuthenticationException("Member with memberId " + memberId + "doesn't exist",
+                ErrorType.MEMBER_NOT_FOUND);
         }
         memberOptional.get().setActive(false);
         memberRepository.save(memberOptional.get());
@@ -113,17 +126,30 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public Member updateMemberDetails(String memberId, UpdateMemberRequest updateRequest) {
-        // TODO update to throw specific exception
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> new RuntimeException(
-            "Member not found with id: " + memberId));
+    public MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest) {
+        Optional<Member> memberOptional = memberRepository.findById(memberId);
+        if (memberOptional.isEmpty()) {
+            log.error("Member with memberId {} doesn't exist", memberId);
+            throw new AuthenticationException("Member with memberId " + memberId + "doesn't exist",
+                ErrorType.MEMBER_NOT_FOUND);
+        }
 
         // Only update allowed fields
+        Member member = memberOptional.get();
         member.setName(updateRequest.getName());
         member.setPhoneNumber(updateRequest.getPhoneNumber());
-        member.setBlocked(updateRequest.isBlocked());
+        member.setRoles(updateRequest.getRoles());
 
-        return memberRepository.save(member);
+        if (updateRequest.isUnBlockMember()) {
+            member.setBlocked(false);
+            member.setFailedLoginAttempts(0);
+            member.setBlockedAt(null);
+        }
+
+        Member savedMember = memberRepository.save(member);
+        return MemberDto.builder().id(member.getId()).name(savedMember.getName()).email(savedMember.getEmail())
+            .phoneNumber(savedMember.getPhoneNumber()).roles(savedMember.getRoles()).joiningDate(savedMember
+                .getCreatedAt().toLocalDate()).active(savedMember.isActive()).blocked(savedMember.isBlocked()).build();
 
     }
 

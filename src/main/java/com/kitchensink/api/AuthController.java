@@ -7,7 +7,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,7 @@ import com.kitchensink.config.security.JwtTokenProvider;
 import com.kitchensink.dto.LoginRequestDto;
 import com.kitchensink.service.LoginService;
 import com.kitchensink.service.MemberService;
+import com.kitchensink.service.impl.AuthServiceImpl;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,6 +39,8 @@ public class AuthController {
 
     private final LoginService loginService;
 
+    private final AuthServiceImpl authService;
+
     private final MemberService memberService;
 
     
@@ -43,9 +48,10 @@ public class AuthController {
 
     private final JwtTokenProvider tokenProvider;
 
-    public AuthController(LoginService loginService, MemberService memberService,
+    public AuthController(LoginService loginService, AuthServiceImpl authService, MemberService memberService,
         @Value("${jwt.refresh.cookie.path:/}") String refreshCookiePath, JwtTokenProvider tokenProvider) {
         this.loginService = loginService;
+        this.authService = authService;
         this.memberService = memberService;
         this.refreshCookiePath = refreshCookiePath;
         this.tokenProvider = tokenProvider;
@@ -66,7 +72,7 @@ public class AuthController {
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "token refreshed successfully"),
             @ApiResponse(responseCode = "401", description = "Invalid refresh token"), @ApiResponse(
                 responseCode = "500", description = "Internal server error") })
-    @GetMapping("/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshToken(@CookieValue(value = "refresh_token",
         required = false) String refreshToken, Authentication authentication) {
         if (refreshToken == null) {
@@ -89,6 +95,34 @@ public class AuthController {
             HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", message, "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider
                     .getJwtRefreshExpiration().toMillis()));
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<?> check() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return ResponseEntity.ok().build(); // User is authenticated
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Not authenticated
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout() {
+        return getTokenRemovalCookiesResponseEntity();
+    }
+
+    public ResponseEntity<Map<String, Object>> getTokenRemovalCookiesResponseEntity() {
+        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true).path("/").maxAge(0)
+            .build();
+
+        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true).path(
+            refreshCookiePath) // should match path used when setting it
+            .maxAge(0).build();
+
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(
+            HttpHeaders.SET_COOKIE, clearRefreshToken.toString()).body(Map.of("message", "Logged out successfully"));
     }
 
 }

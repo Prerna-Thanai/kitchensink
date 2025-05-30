@@ -35,9 +35,13 @@ public class Member {
     @ToString.Exclude
     private String password;
 
-    private boolean isActive = true;
+    private boolean active = true;
 
-    private boolean isBlocked = false;
+    private boolean blocked = false;
+
+    private int failedLoginAttempts;
+
+    private LocalDateTime blockedAt;
 
     private List<String> roles;
 

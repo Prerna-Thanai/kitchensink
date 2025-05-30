@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kitchensink.dto.MemberDto;
 import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
 import com.kitchensink.service.MemberService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,9 +44,9 @@ public class MemberController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<PagedModel<Member>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
+    public ResponseEntity<PagedModel<MemberDto>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
         @RequestParam(value = "showInactiveMembers", required = false) boolean showInactiveMembers) {
-        Page<Member> members = memberService.getAllMembers(pageable, showInactiveMembers);
+        Page<MemberDto> members = memberService.getAllMembers(pageable, showInactiveMembers);
         return ResponseEntity.ok(new PagedModel<>(members));
     }
 
@@ -58,9 +57,9 @@ public class MemberController {
     }
 
     @PutMapping("/{memberId}")
-    public ResponseEntity<Member> updateUserById(@PathVariable String memberId,
+    public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId,
         @RequestBody UpdateMemberRequest updateRequest) {
-        Member updatedMember = memberService.updateMemberDetails(memberId, updateRequest);
+        MemberDto updatedMember = memberService.updateMemberDetails(memberId, updateRequest);
         return ResponseEntity.ok().body(updatedMember);
     }
 

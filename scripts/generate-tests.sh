@@ -2,10 +2,9 @@
 # set -e
 
 # Configuration
-MODEL="gpt-4.1-nano"
+MODEL="gpt-4"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
-git fetch origin main
 files=$(git diff --name-only origin/main...HEAD -- '*.java' | grep -v "$TEST_DIR")
 echo $(pwd)
 echo 'Files: ' $files
@@ -21,6 +20,8 @@ for file in $files; do
     response=$(curl -s -v https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
+      -H "OpenAI-Organization: org-qtcv6C39wOH1EepYAv4kxk2F" \
+      -H "OpenAI-Project: proj_pQHHCDdPXoklAe5nUVTvsrQ5" \
       -d @- <<EOF
 {
   "model": "$MODEL",

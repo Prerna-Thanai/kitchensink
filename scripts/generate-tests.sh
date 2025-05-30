@@ -45,7 +45,7 @@ for file in $files; do
     #)
 
     rm request.json
-    response="```java import \npackage com.kitchensink.service.impl;\n\nimport static org.junit.jupiter.api.Assertions.*;\nimport static org.mockito.Mockito.*;\n\nimport java.util.Collections;\nimport java.util.Optional;\n\nimport org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.Test;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.MockitoAnnotations;\nimport org.springframework.security.core.userdetails.UsernameNotFoundException;\n\nimport com.kitchensink.entity.Member;\nimport com.kitchensink.repository.MemberRepository;\n\npublic class AuthServiceImplTest {}```"
+    response="```java import package com.kitchensink.service.impl;import static org.junit.jupiter.api.Assertions.*;import static org.mockito.Mockito.*;import java.util.Collections;public class AuthServiceImplTest {}```"
     # Extract the code block from response (assuming Markdown-style output)
     echo "Response: $response"
     test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')

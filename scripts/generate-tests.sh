@@ -1,4 +1,4 @@
-#!/bin/bash
+!/bin/bash
 # set -e
 
 # Configuration
@@ -36,19 +36,18 @@ for file in $files; do
     }' > request.json
     
     # Generate test via OpenAI API
-    #response=$(curl -s https://api.openai.com/v1/chat/completions \
-    #  -H "Authorization: Bearer $OPENAI_API_KEY" \
-    #  -H "Content-Type: application/json" \
-    #  -H "OpenAI-Organization: $OPENAI_ORG" \
-    #  -H "OpenAI-Project: $OPENAI_PRJ" \
-    #  -d @request.json
-    #)
+    response=$(curl -s https://api.openai.com/v1/chat/completions \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -H "Content-Type: application/json" \
+      -H "OpenAI-Organization: $OPENAI_ORG" \
+      -H "OpenAI-Project: $OPENAI_PRJ" \
+      -d @request.json
+    )
 
     rm request.json
-    test_code='```java import package com.kitchensink.service.impl;import static org.junit.jupiter.api.Assertions.*;import static org.mockito.Mockito.*;import java.util.Collections;public class AuthServiceImplTest {}```'
     # Extract the code block from response (assuming Markdown-style output)
-    echo "Response: $test_code"
-    #test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')
+    echo "Response: $response"
+    test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')
 
     # Fallback if no code block
     if [ -z "$test_code" ]; then

@@ -25,7 +25,7 @@ for file in $files; do
     class_content=$(cat "$file")
     jq -n \
     --arg model "$MODEL" \
-    --arg content "Write JUnit 5 test cases of Spring boot 3+ with mockito for the following class:\n\n$CLASS_CONTENT" \
+    --arg content "Write JUnit 5 test cases of Spring boot 3+ with mockito for the following class:\n\n$class_content" \
     --argjson temp 0.3 \
     '{
       model: $model,

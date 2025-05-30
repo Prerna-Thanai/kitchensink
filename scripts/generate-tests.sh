@@ -5,7 +5,7 @@
 MODEL="gpt-4"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
-files=$(git diff --name-only origin/main...HEAD -- '*.java' | grep -v "$TEST_DIR")
+files=$(git diff --name-only origin/main...HEAD -- 'MemberServiceImpl.java' | grep -v "$TEST_DIR")
 echo $(pwd)
 echo 'Files: ' $files
 mkdir -p $TEST_DIR/generated

@@ -19,7 +19,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: ${{ steps.base-depth.outputs.base-depth }}
+          # fetch-depth: ${{ steps.base-depth.outputs.base-depth }}
+          fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
       - name: Fetch origin/main
         run: git fetch origin main

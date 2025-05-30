@@ -34,7 +34,7 @@ for file in $files; do
       ],
       temperature: $temp
     }' > request.json
-    echo "request: $request"
+    cat request.json
     # Generate test via OpenAI API
     response=$(curl-v -s https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \

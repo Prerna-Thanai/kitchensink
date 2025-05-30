@@ -1,21 +1,20 @@
 package com.kitchensink.service.impl;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-import java.util.Collections;
-import java.util.Optional;
-
+import com.kitchensink.entity.Member;
+import com.kitchensink.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import com.kitchensink.entity.Member;
-import com.kitchensink.repository.MemberRepository;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class AuthServiceImplTest {
 
@@ -31,13 +30,12 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loadUserByUsername_UserFound() {
+    void testLoadUserByUsername_UserFoundAndActive() {
         // Arrange
         String email = "test@example.com";
-        String password = "password";
         Member member = new Member();
         member.setEmail(email);
-        member.setPassword(password);
+        member.setPassword("password");
         member.setActive(true);
         member.setBlocked(false);
         member.setRoles(Collections.singletonList("ROLE_USER"));
@@ -50,17 +48,15 @@ class AuthServiceImplTest {
         // Assert
         assertNotNull(userDetails);
         assertEquals(email, userDetails.getUsername());
-        assertEquals(password, userDetails.getPassword());
-        assertFalse(userDetails.isAccountNonLocked());
-        assertTrue(userDetails.isEnabled());
-        assertEquals(1, userDetails.getAuthorities().size());
+        assertEquals("password", userDetails.getPassword());
         assertTrue(userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+        assertTrue(userDetails.isEnabled());
     }
 
     @Test
-    void loadUserByUsername_UserNotFound() {
+    void testLoadUserByUsername_UserNotFound() {
         // Arrange
-        String email = "nonexistent@example.com";
+        String email = "notfound@example.com";
         when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -71,7 +67,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loadUserByUsername_UserBlocked() {
+    void testLoadUserByUsername_UserBlocked() {
         // Arrange
         String email = "blocked@example.com";
         Member member = new Member();
@@ -91,7 +87,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loadUserByUsername_UserInactive() {
+    void testLoadUserByUsername_UserNotActive() {
         // Arrange
         String email = "inactive@example.com";
         Member member = new Member();

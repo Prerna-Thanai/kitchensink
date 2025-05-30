@@ -63,4 +63,6 @@ public class MemberController {
         return ResponseEntity.ok().body(updatedMember);
     }
 
+    //sample commit
+
 }

@@ -38,10 +38,5 @@ jobs:
           git config user.name "CI Bot"
           git config user.email "ci@member.com"
           git add src/test/java/
-          # Only commit if there are changes
-          if ! git diff --cached --quiet; then
-            git commit -m "Add AI-generated unit tests"
-            git push
-          else
-            echo "No changes to commit"
-          fi
+          git commit -m "Add AI-generated unit tests"
+          git push

@@ -61,9 +61,9 @@ for file in $files; do
     package_name=${package_line//package /}
     package_name=${package_name//;/}
     package_dir=$(echo "$package_name" | tr '.' '/')
-    output_dir="$TEST_DIR/$package_dir"
+    output_dir="$TEST_DIR/$package_dir/"
     mkdir -p "$output_dir"
     base_name=$(basename "$file" .java)
-    echo "$test_code" > "$output_dir/${base_name}AiTest.java"
+    echo "$test_code" > "$output_dir${base_name}AiTest.java"
     echo "Generated test saved to $output_dir${base_name}AiTest.java"
 done

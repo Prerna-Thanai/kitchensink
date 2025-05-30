@@ -45,7 +45,7 @@ for file in $files; do
     #)
 
     rm request.json
-    test_code="```java import package com.kitchensink.service.impl;import static org.junit.jupiter.api.Assertions.*;import static org.mockito.Mockito.*;import java.util.Collections;public class AuthServiceImplTest {}```"
+    test_code='```java import package com.kitchensink.service.impl;import static org.junit.jupiter.api.Assertions.*;import static org.mockito.Mockito.*;import java.util.Collections;public class AuthServiceImplTest {}```'
     # Extract the code block from response (assuming Markdown-style output)
     echo "Response: $test_code"
     #test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')

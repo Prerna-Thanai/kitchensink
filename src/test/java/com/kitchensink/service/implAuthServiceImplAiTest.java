@@ -1,20 +1,21 @@
 package com.kitchensink.service.impl;
 
-import com.kitchensink.entity.Member;
-import com.kitchensink.repository.MemberRepository;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Collections;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import com.kitchensink.entity.Member;
+import com.kitchensink.repository.MemberRepository;
 
 class AuthServiceImplTest {
 
@@ -30,12 +31,13 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loadUserByUsername_UserFoundAndActive() {
+    void loadUserByUsername_UserFound() {
         // Arrange
         String email = "test@example.com";
+        String password = "password";
         Member member = new Member();
         member.setEmail(email);
-        member.setPassword("password");
+        member.setPassword(password);
         member.setActive(true);
         member.setBlocked(false);
         member.setRoles(Collections.singletonList("ROLE_USER"));
@@ -48,13 +50,28 @@ class AuthServiceImplTest {
         // Assert
         assertNotNull(userDetails);
         assertEquals(email, userDetails.getUsername());
-        assertEquals("password", userDetails.getPassword());
-        assertTrue(userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+        assertEquals(password, userDetails.getPassword());
+        assertFalse(userDetails.isAccountNonLocked());
         assertTrue(userDetails.isEnabled());
+        assertEquals(1, userDetails.getAuthorities().size());
+        assertTrue(userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
     }
 
     @Test
-    void loadUserByUsername_UserFoundButBlocked() {
+    void loadUserByUsername_UserNotFound() {
+        // Arrange
+        String email = "nonexistent@example.com";
+        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
+            authService.loadUserByUsername(email);
+        });
+        assertEquals("User with email " + email + " not found", exception.getMessage());
+    }
+
+    @Test
+    void loadUserByUsername_UserBlocked() {
         // Arrange
         String email = "blocked@example.com";
         Member member = new Member();
@@ -74,15 +91,25 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loadUserByUsername_UserNotFound() {
+    void loadUserByUsername_UserInactive() {
         // Arrange
-        String email = "notfound@example.com";
-        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.empty());
+        String email = "inactive@example.com";
+        Member member = new Member();
+        member.setEmail(email);
+        member.setPassword("password");
+        member.setActive(false);
+        member.setBlocked(false);
+        member.setRoles(Collections.singletonList("ROLE_USER"));
 
-        // Act & Assert
-        UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class, () -> {
-            authService.loadUserByUsername(email);
-        });
-        assertEquals("User with email " + email + " not found", exception.getMessage());
+        when(memberRepository.findByEmailAndActiveTrue(email)).thenReturn(Optional.of(member));
+
+        // Act
+        UserDetails userDetails = authService.loadUserByUsername(email);
+
+        // Assert
+        assertNotNull(userDetails);
+        assertEquals(email, userDetails.getUsername());
+        assertEquals("password", userDetails.getPassword());
+        assertFalse(userDetails.isEnabled());
     }
 }

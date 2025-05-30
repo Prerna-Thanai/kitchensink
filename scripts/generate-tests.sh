@@ -2,18 +2,10 @@
 # set -e
 
 # Configuration
-BASE_SHA=$1
-HEAD_SHA=$2
-
-echo "API key length: ${#OPENAI_API_KEY}"
-if [ -z "$OPENAI_API_KEY" ]; then
-    echo "Error: OPENAI_API_KEY is not set."
-    exit 1
-fi
-MODEL="gpt-4o-mini"
+MODEL="gpt-4"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
-files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '*.java' | grep -v "$TEST_DIR")
+files=$(git diff --name-only origin/main...HEAD -- '*.java' | grep -v "$TEST_DIR")
 echo $(pwd)
 echo 'Files: ' $files
 mkdir -p $TEST_DIR/generated
@@ -23,28 +15,32 @@ for file in $files; do
 
     # Extract class content
     class_content=$(cat "$file")
-    jq -n \
-    --arg model "$MODEL" \
-    --arg content "Write JUnit 5 test cases of Spring boot 3+ with mockito for the following class:\n\n$CLASS_CONTENT" \
-    --argjson temp 0.3 \
-    '{
-      model: $model,
-      messages: [
-        { role: "user", content: $content }
-      ],
-      temperature: $temp
-    }' > request.json
 
     # Generate test via OpenAI API
-    response=$(curl -s https://api.openai.com/v1/chat/completions \
+    response=$(curl -s -v https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
-      -d @request.json
+      -H "OpenAI-Organization: org-qtcv6C39wOH1EepYAv4kxk2F" \
+      -H "OpenAI-Project: proj_pQHHCDdPXoklAe5nUVTvsrQ5" \
+      -d @- <<EOF
+{
+  "model": "$MODEL",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a Java developer who writes complete and valid JUnit 5 tests."
+    },
+    {
+      "role": "user",
+      "content": "Write JUnit 5 test cases for the following class:\n\n$class_content"
+    }
+  ],
+  "temperature": 0.3
+}
+EOF
     )
 
-    rm request.json
     # Extract the code block from response (assuming Markdown-style output)
-    echo "Response: $response"
     test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')
 
     # Fallback if no code block
@@ -54,13 +50,7 @@ for file in $files; do
     fi
 
     # Save generated test file
-    package_line=$(grep "^package " "$file")
-    package_name=${package_line//package /}
-    package_name=${package_name//;/}
-    package_dir=$(echo "$package_name" | tr '.' '/')
-    output_dir="$TEST_DIR/$package_dir"
-    mkdir -p "$output_dir"
     base_name=$(basename "$file" .java)
-    echo "$test_code" > "$output_dir${base_name}AiTest.java"
-    echo "Generated test saved to $output_dir${base_name}AiTest.java"
+    echo "$test_code" > "$TEST_DIR/generated/${base_name}Test.java"
+    echo "Generated test saved to $TEST_DIR/generated/${base_name}Test.java"
 done

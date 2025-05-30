@@ -32,6 +32,8 @@ jobs:
         run: ./scripts/generate-tests.sh ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_PRJ: ${{ secrets.OPENAI_PRJ }}
+          OPENAI_ORG: ${{ secrets.OPENAI_ORG }}
       - name: Commit generated tests
         run: |
           git config user.name "CI Bot"

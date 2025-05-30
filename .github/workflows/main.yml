@@ -1,17 +1,14 @@
 name: Generate JUnit Tests v2
 
 on:
-  pull_request: # Trigger on pull request events
-    types: [opened, reopened] # Specifically when a PR is opened or reopened
+  pull_request:
     branches:
-      - main # Target branch for the pull request
-    paths: # Add this section to filter by file paths
-      - 'src/main/java/**/*.java' # Only trigger if Java files in src/main/java are changed
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write # Allow the action to write to the repository
   pull-requests: write # Allow the action to create and update pull requests
-
 jobs:
   generate-tests:
     runs-on: ubuntu-latest
@@ -24,8 +21,10 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
       - name: Fetch origin/main
         run: git fetch origin main
+
       - name: Grant execute permissions to script
         run: chmod +x scripts/generate-tests.sh
+
       - name: Show changed files
         run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
       - name: Run test generator script
@@ -38,7 +37,11 @@ jobs:
         run: |
           git config user.name "CI Bot"
           git config user.email "ci@member.com"
-          git add src/test/java
-          git commit -m "Add AI-generated unit tests"
-          git push
-          
+          git add src/test/java/generated
+          # Only commit if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "Add AI-generated unit tests"
+            git push
+          else
+            echo "No changes to commit"
+          fi

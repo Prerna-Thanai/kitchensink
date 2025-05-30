@@ -24,7 +24,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
-@RequestMapping(value = "/api/member")
+@RequestMapping(value = "/api/members")
 public class MemberController {
 
     private final MemberService memberService;
@@ -43,7 +43,7 @@ public class MemberController {
         return ResponseEntity.ok(memberDto);
     }
 
-    @GetMapping("/all")
+    @GetMapping("/")
     public ResponseEntity<PagedModel<MemberDto>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
         @RequestParam(value = "showInactiveMembers", required = false) boolean showInactiveMembers) {
         Page<MemberDto> members = memberService.getAllMembers(pageable, showInactiveMembers);

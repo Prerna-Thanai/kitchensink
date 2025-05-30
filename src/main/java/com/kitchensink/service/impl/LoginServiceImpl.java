@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import com.kitchensink.dto.LoginRequestDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AuthenticationException;
+import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.LoginService;
 
@@ -35,13 +35,13 @@ public class LoginServiceImpl implements LoginService {
     public Authentication login(LoginRequestDto loginRequestDto) {
         log.info("Logging in with email: {}", loginRequestDto.getEmail());
         Optional<Member> loggingUser = memberRepository.findByEmail(loginRequestDto.getEmail());
-        if (loggingUser.isEmpty() || loggingUser.isPresent() && !loggingUser.get().isActive()) {
+        if (loggingUser.isEmpty() || !loggingUser.get().isActive()) {
             log.error("Member with email {} doesn't exist", loginRequestDto.getEmail());
-            throw new AuthenticationException("Member with email " + loginRequestDto.getEmail() + " doesn't exist",
+            throw new AppAuthenticationException("Member with email " + loginRequestDto.getEmail() + " doesn't exist",
                 ErrorType.MEMBER_NOT_FOUND);
-        } else if (loggingUser.isPresent() && loggingUser.get().isBlocked()) {
+        } else if (loggingUser.get().isBlocked()) {
             log.error("Account blocked for member with email {}", loginRequestDto.getEmail());
-            throw new AuthenticationException("Account blocked for member with email " + loginRequestDto.getEmail(),
+            throw new AppAuthenticationException("Account blocked for member with email " + loginRequestDto.getEmail(),
                 ErrorType.ACCOUNT_BLOCKED);
         }
         try {

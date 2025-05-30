@@ -36,15 +36,16 @@ for file in $files; do
     }' > request.json
     
     # Generate test via OpenAI API
-    response=$(curl -s https://api.openai.com/v1/chat/completions \
-      -H "Authorization: Bearer $OPENAI_API_KEY" \
-      -H "Content-Type: application/json" \
-      -H "OpenAI-Organization: $OPENAI_ORG" \
-      -H "OpenAI-Project: $OPENAI_PRJ" \
-      -d @request.json
-    )
+    #response=$(curl -s https://api.openai.com/v1/chat/completions \
+    #  -H "Authorization: Bearer $OPENAI_API_KEY" \
+    #  -H "Content-Type: application/json" \
+    #  -H "OpenAI-Organization: $OPENAI_ORG" \
+    #  -H "OpenAI-Project: $OPENAI_PRJ" \
+    #  -d @request.json
+    #)
 
     rm request.json
+    response="```java import \npackage com.kitchensink.service.impl;\n\nimport static org.junit.jupiter.api.Assertions.*;\nimport static org.mockito.Mockito.*;\n\nimport java.util.Collections;\nimport java.util.Optional;\n\nimport org.junit.jupiter.api.BeforeEach;\nimport org.junit.jupiter.api.Test;\nimport org.mockito.InjectMocks;\nimport org.mockito.Mock;\nimport org.mockito.MockitoAnnotations;\nimport org.springframework.security.core.userdetails.UsernameNotFoundException;\n\nimport com.kitchensink.entity.Member;\nimport com.kitchensink.repository.MemberRepository;\n\npublic class AuthServiceImplTest {}```"
     # Extract the code block from response (assuming Markdown-style output)
     echo "Response: $response"
     test_code=$(echo "$response" | jq -r '.choices[0].message.content' | sed -n '/```java/,/```/p' | sed '1d;$d')

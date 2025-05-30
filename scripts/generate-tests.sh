@@ -39,6 +39,8 @@ for file in $files; do
     response=$(curl -s https://api.openai.com/v1/chat/completions \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "Content-Type: application/json" \
+      -H "OpenAI-Organization: $OPENAI_ORG" \
+      -H "OpenAI-Project: $OPENAI_PRJ" \
       -d @request.json
     )
 

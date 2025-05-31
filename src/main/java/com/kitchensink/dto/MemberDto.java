@@ -6,6 +6,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * The Class MemberDto.
@@ -15,6 +16,7 @@ import lombok.Data;
 @Builder
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class MemberDto {
 
     /** The id */

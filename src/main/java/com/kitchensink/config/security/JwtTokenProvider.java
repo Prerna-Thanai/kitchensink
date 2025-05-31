@@ -16,6 +16,7 @@ import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.service.impl.AuthServiceImpl;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -195,7 +196,7 @@ public class JwtTokenProvider {
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
             String tokenTypeInClaim = claims.get(TOKEN_TYPE_CLAIM, String.class);
             if (!tokenType.equals(tokenTypeInClaim)) {
-                throw new AppAuthenticationException("Refresh Token not found", ErrorType.TOKEN_INVALID);
+                throw new AppAuthenticationException(tokenType + " token not found", ErrorType.TOKEN_INVALID);
             }
             if (!isTokenExpired(claims)) {
                 throw new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
@@ -207,6 +208,8 @@ public class JwtTokenProvider {
             if (authentication != null) {
                 authService.loadUserByUsername(authentication.getName());
             }
+        } catch (ExpiredJwtException exception) {
+            throw new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
         } catch (JwtException | IllegalArgumentException e) {
             log.error("Invalid JWT Refresh token: {}", token, e);
             throw new AppAuthenticationException("Invalid Token", ErrorType.TOKEN_INVALID);

@@ -24,16 +24,34 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+/**
+ * The Class MemberController.
+ *
+ * @author prerna
+ */
 @RestController
 @RequestMapping(value = "/api/members")
 public class MemberController {
 
+    /** The member service */
     private final MemberService memberService;
 
+    /**
+     * Member controller constructor
+     *
+     * @param memberService
+     */
     public MemberController(MemberService memberService) {
         this.memberService = memberService;
     }
 
+    /**
+     * Gets the current member details.
+     *
+     * @param authentication
+     *            the authentication
+     * @return the member dto
+     */
     @Operation(summary = "Current Member Details")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member details retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Member not authenticated or session expired"),
@@ -44,6 +62,15 @@ public class MemberController {
         return ResponseEntity.ok(memberDto);
     }
 
+    /**
+     * Gets all member details.
+     *
+     * @param pageable
+     *            the pageable
+     * @param showInactiveMembers
+     *            the show inactive members
+     * @return the member dto
+     */
     @Operation(summary = "Get all members")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Members list recieved successfully"),
             @ApiResponse(responseCode = "401", description = "Invalid email or password"), @ApiResponse(
@@ -73,6 +100,19 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Update member by ID.
+     *
+     * @param memberId
+     *            the member id
+     * @param updateRequest
+     *            the update request
+     * @return response entity member dto
+     */
+    @Operation(summary = "Update Member by ID", description = "Update member details using member id.")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"), @ApiResponse(responseCode = "404",
+                description = "Member not found") })
     @PutMapping("/{memberId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId,

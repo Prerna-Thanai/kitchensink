@@ -9,6 +9,13 @@ import com.kitchensink.dto.RegisterMemberDto;
  */
 public interface MemberRegistrationService {
 
+    /**
+     * Registers a new member after validation.
+     *
+     * @param newMember
+     *            the new member data
+     * @return Authentication object upon successful registration
+     */
     Authentication register(RegisterMemberDto newMember);
 
 }

@@ -1,13 +1,9 @@
 package com.kitchensink.service.impl;
 
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.repository.MemberRepository;
-import com.kitchensink.service.MemberService;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -15,20 +11,45 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.repository.MemberRepository;
+import com.kitchensink.service.MemberService;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * The Class MemberServiceImpl.
+ *
+ * @author prerna
+ */
 @Service
 @Slf4j
 public class MemberServiceImpl implements MemberService {
 
+    /** The member repository */
     private final MemberRepository memberRepository;
 
+    /**
+     * MemberServiceImpl constructor
+     *
+     * @param memberRepository
+     *            the member repository
+     */
     public MemberServiceImpl(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }
 
+    /**
+     * Get current user data
+     *
+     * @param authentication
+     *            the authentication
+     * @return member
+     */
     @Override
     public MemberDto currentUserData(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -48,7 +69,15 @@ public class MemberServiceImpl implements MemberService {
                 .getCreatedAt().toLocalDate()).build();
     }
 
-
+    /**
+     * Get all members
+     *
+     * @param pageable
+     *            the pageable
+     * @param showInactiveMembers
+     *            the show inactive members
+     * @return members
+     */
     @Override
     public Page<MemberDto> getAllMembers(Pageable pageable, boolean showInactiveMembers) {
         if (showInactiveMembers) {
@@ -58,6 +87,13 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
+    /**
+     * Transform member entity to dto
+     *
+     * @param membersPage
+     *            the members page
+     * @return member dto
+     */
     private Page<MemberDto> transformMember(Page<Member> membersPage) {
 
         List<MemberDto> memberDTOs = membersPage.getContent().stream().map((Member member) -> MemberDto.builder().id(
@@ -69,6 +105,12 @@ public class MemberServiceImpl implements MemberService {
         return new PageImpl<>(memberDTOs, membersPage.getPageable(), membersPage.getTotalElements());
     }
 
+    /**
+     * Delete member by member id
+     *
+     * @param memberId
+     *            the param member id
+     */
     @Override
     public void deleteMemberById(String memberId) {
         // soft delete
@@ -83,6 +125,15 @@ public class MemberServiceImpl implements MemberService {
 
     }
 
+    /**
+     * Update member details
+     *
+     * @param memberId
+     *            the member id
+     * @param updateRequest
+     *            the update request
+     * @return member
+     */
     @Override
     public MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest) {
         Optional<Member> memberOptional = memberRepository.findById(memberId);

@@ -9,14 +9,23 @@ import java.lang.annotation.Target;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
+/**
+ * The Interface ValidUserRole for custom validation.
+ *
+ * @author prerna
+ */
 @Documented
 @Constraint(validatedBy = ValidUserRoleValidator.class)
 @Target({ ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidUserRole {
-    String message() default "Only one role allowed and it must be 'USER'";
 
+    /** The message */
+    String message() default "Only 'USER' role allowed for registration";
+
+    /** The groups */
     Class<?>[] groups() default {};
 
+    /** The payload */
     Class<? extends Payload>[] payload() default {};
 }

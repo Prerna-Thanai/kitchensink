@@ -35,8 +35,22 @@ public interface MemberRepository extends MongoRepository<Member, String> {
      */
     Member findByPhoneNumber(String phoneNumber);
 
+    /**
+     * Find by active true
+     *
+     * @param pageable
+     *            the pageable
+     * @return member
+     */
     Page<Member> findByActiveTrue(Pageable pageable);
 
+    /**
+     * Find by email and active true
+     *
+     * @param email
+     *            the email
+     * @return optional member
+     */
     Optional<Member> findByEmailAndActiveTrue(String email);
 
 }

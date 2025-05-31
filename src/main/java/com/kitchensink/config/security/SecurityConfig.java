@@ -2,8 +2,6 @@ package com.kitchensink.config.security;
 
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,16 +18,36 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * The Class SecurityConfig.
+ *
+ * @author prerna
+ */
 @Configuration
+@Slf4j
 public class SecurityConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+    /** The Constant PUBLIC_URLS */
     public static final String[] PUBLIC_URLS = { "/api/auth/login", "/api/auth/register", "/api/token",
             "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs", "/v3/api-docs/swagger-config",
             "/actuator/**", "/api/version" };
+
+    /** The jwt auth filter */
     private final JwtAuthFilter jwtAuthFilter;
+
+    /** The allowed origins */
     private final String allowedOrigins;
 
+    /**
+     * SecurityConfig constructor
+     *
+     * @param jwtAuthFilter
+     *            the jwt auth filter
+     * @param allowedOrigins
+     *            the allowed origins
+     */
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
         @Value("${cors.allowed-origins:${CORS_ALLOWED_ORIGINS:http://localhost:4200}}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -60,6 +78,14 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+    /**
+     * Filter Chain
+     *
+     * @param http
+     *            the http
+     * @return the security filter chain
+     * @throws Exception
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -70,6 +96,11 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Cors Configuration Source
+     *
+     * @return the cors configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

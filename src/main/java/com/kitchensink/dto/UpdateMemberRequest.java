@@ -8,6 +8,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * The Class UpdateMemberRequest.
+ *
+ * @author prerna
+ */
 @Data
 public class UpdateMemberRequest {
 
@@ -23,10 +28,12 @@ public class UpdateMemberRequest {
     @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Invalid mobile number")
     private String phoneNumber;
 
+    /** The roles list */
     @NotEmpty(message = "At least one role must be added")
     @Size(min = 1, max = 10, message = "Max of 10 roles can be assigned")
     private List<String> roles;
 
+    /** The unblock member */
     private boolean unBlockMember = false;
 
 }

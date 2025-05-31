@@ -18,19 +18,41 @@ import com.kitchensink.service.LoginService;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * The Class LoginServiceImpl.
+ *
+ * @author prerna
+ */
 @Service
 @Slf4j
 public class LoginServiceImpl implements LoginService {
 
+    /** The authentication manager */
     private final AuthenticationManager authenticationManager;
 
+    /** The member repository */
     private final MemberRepository memberRepository;
 
+    /**
+     * LoginServiceImpl constructor
+     *
+     * @param authenticationManager
+     *            the authentication manager
+     * @param memberRepository
+     *            the member repository
+     */
     public LoginServiceImpl(AuthenticationManager authenticationManager, MemberRepository memberRepository) {
         this.authenticationManager = authenticationManager;
         this.memberRepository = memberRepository;
     }
 
+    /**
+     * Login member
+     *
+     * @param loginRequestDto
+     *            the login request dto
+     * @return authentication
+     */
     @Override
     public Authentication login(LoginRequestDto loginRequestDto) {
         log.info("Logging in with email: {}", loginRequestDto.getEmail());
@@ -47,16 +69,31 @@ public class LoginServiceImpl implements LoginService {
         try {
             return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
         } catch (BadCredentialsException e) {
-            processFailedLogin(loginRequestDto.getEmail());
+            handleFailedLogin(loginRequestDto.getEmail());
             throw e;
         }
     }
 
+    /**
+     * Authenticate member
+     *
+     * @param username
+     *            the username
+     * @param password
+     *            the password
+     * @return authentication
+     */
     private Authentication authenticate(String username, String password) {
         return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
     }
 
-    private void processFailedLogin(String email) {
+    /**
+     * Handle member details when Failed Login
+     *
+     * @param email
+     *            the email
+     */
+    private void handleFailedLogin(String email) {
         Optional<Member> memberOptional = memberRepository.findByEmail(email);
         int attempts = memberOptional.get().getFailedLoginAttempts() + 1;
         memberOptional.get().setFailedLoginAttempts(attempts);

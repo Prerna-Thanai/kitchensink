@@ -5,8 +5,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.ToString;
 
+/**
+ * The Class LoginRequestDto.
+ *
+ * @author prerna
+ */
 @Data
-public class LoginRequestDto{
+public class LoginRequestDto {
 
     /** The email. */
     @NotNull(message = "Email should not be empty")

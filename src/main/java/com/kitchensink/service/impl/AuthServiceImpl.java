@@ -12,15 +12,34 @@ import org.springframework.stereotype.Service;
 import com.kitchensink.entity.Member;
 import com.kitchensink.repository.MemberRepository;
 
+/**
+ * The Class AuthServiceImpl.
+ *
+ * @author prerna
+ */
 @Service
 public class AuthServiceImpl implements UserDetailsService {
 
+    /** The member repository */
     private final MemberRepository memberRepository;
 
+    /**
+     * AuthServiceImpl constructor
+     *
+     * @param memberRepository
+     *            the member repository
+     */
     public AuthServiceImpl(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }
 
+    /**
+     * Load user by username
+     *
+     * @param email
+     *            the email
+     * @return user details
+     */
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Optional<Member> memberOptional = memberRepository.findByEmailAndActiveTrue(email);

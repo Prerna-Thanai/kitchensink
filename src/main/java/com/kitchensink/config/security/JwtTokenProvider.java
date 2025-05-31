@@ -23,24 +23,50 @@ import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * The Class JwtTokenProvider.
+ *
+ * @author prerna
+ */
 @Component
 @Slf4j
 public class JwtTokenProvider {
 
+    /** The Constant TOKEN_TYPE_CLAIM */
     public static final String TOKEN_TYPE_CLAIM = "token_type";
+
+    /** The Constant ACCESS_TOKEN */
     public static final String ACCESS_TOKEN = "access";
+
+    /** The Constant REFRESH_TOKEN */
     public static final String REFRESH_TOKEN = "refresh";
 
+    /** The auth service */
     private final AuthServiceImpl authService;
 
+    /** The jwt access expiration */
     @Getter
     private final Duration jwtAccessExpiration;
 
+    /** The refresh expiration */
     @Getter
     private final Duration jwtRefreshExpiration;
 
+    /** The key */
     private final Key key;
 
+    /**
+     * JwtTokenProvider constructor
+     *
+     * @param authService
+     *            the auth service
+     * @param jwtAccessExpiration
+     *            the jwt access expiration
+     * @param jwtRefreshExpiration
+     *            the jwt refresj expiration time
+     * @param jwtSecret
+     *            the jwtsecret
+     */
     public JwtTokenProvider(AuthServiceImpl authService,
         @Value("${jwt.access.expiration:24h}") Duration jwtAccessExpiration,
         @Value("${jwt.refresh.expiration:7d}") Duration jwtRefreshExpiration,
@@ -74,6 +100,13 @@ public class JwtTokenProvider {
         throw new IllegalArgumentException("Authentication principal is not an instance of UserDetails");
     }
 
+    /**
+     * Generate refresh token
+     *
+     * @param authentication
+     *            the authentication
+     * @return token
+     */
     public String generateRefreshToken(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalArgumentException("Authentication is null or not authenticated");
@@ -90,19 +123,46 @@ public class JwtTokenProvider {
         throw new IllegalArgumentException("Authentication principal is not an instance of UserDetails");
     }
 
+    /**
+     * Get username from token
+     *
+     * @param token
+     *            the token
+     * @return username
+     */
     public String getUsernameFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
     }
 
+    /**
+     * Get username from claims
+     *
+     * @param tokenClaims
+     *            the token claims
+     * @return username
+     */
     private String getUsernameFromClaims(Claims tokenClaims) {
         return tokenClaims.getSubject();
     }
 
+    /**
+     * Is token expired
+     *
+     * @param tokenClaims
+     *            the token claims
+     * @return boolean
+     */
     private boolean isTokenExpired(Claims tokenClaims) {
         Date expiration = tokenClaims.getExpiration();
         return expiration != null && expiration.after(new Date());
     }
 
+    /**
+     * Validate access token
+     *
+     * @param token
+     *            the token
+     */
     public void validateAccessToken(String token) {
         if (token == null || token.isEmpty()) {
             throw new AppAuthenticationException("Token is missing", ErrorType.TOKEN_NOT_FOUND);
@@ -110,13 +170,26 @@ public class JwtTokenProvider {
         validateToken(null, token, ACCESS_TOKEN);
     }
 
+    /**
+     * @param refresh
+     *            token
+     * @param token
+     *            the token
+     */
     public void validateRefreshToken(Authentication authentication, String token) {
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        // throw new AuthenticationException("Member not authenticated", ErrorType.MEMBER_NOT_AUTHENTICATED);
-        // }
         validateToken(authentication, token, REFRESH_TOKEN);
     }
 
+    /**
+     * Validate token
+     *
+     * @param authentication
+     *            the authentication
+     * @param token
+     *            the token
+     * @param tokenType
+     *            the token type
+     */
     private void validateToken(Authentication authentication, String token, String tokenType) {
         try {
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();

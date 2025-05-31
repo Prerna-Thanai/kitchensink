@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
- * The Class RegisterMember.
+ * The Class RegisterMemberDto.
  *
  * @author prerna
  */
@@ -52,6 +52,7 @@ public class RegisterMemberDto {
     @ToString.Exclude
     private String password;
 
+    /** The roles list */
     @NotEmpty(message = "At least one role must be added")
     @Size(min = 1, max = 1, message = "Max of 1 roles can be assigned")
     @ValidUserRole(message = "Member can only register as 'USER'")

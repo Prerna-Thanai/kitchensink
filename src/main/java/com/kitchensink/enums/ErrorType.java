@@ -2,6 +2,11 @@ package com.kitchensink.enums;
 
 import lombok.Getter;
 
+/**
+ * The Class ErrorType.
+ *
+ * @author prerna
+ */
 @Getter
 public enum ErrorType{
     USER_ALREADY_EXISTS,

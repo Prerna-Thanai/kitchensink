@@ -23,24 +23,44 @@ import com.kitchensink.service.MemberRegistrationService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Service implementation for member registration.
+ * The Class MemberRegistrationServiceImpl.
+ *
+ * @author prerna
  */
 @Service
 @Slf4j
 public class MemberRegistrationServiceImpl implements MemberRegistrationService {
 
+    /** The authentication manager */
     private final AuthenticationManager authenticationManager;
+
+    /** The member repository */
     private final MemberRepository memberRepository;
+
+    /** The password encoder */
     private final PasswordEncoder passwordEncoder;
 
+    /** The rest template */
     @Autowired
     private RestTemplate restTemplate;
 
+    /** The phone validation key */
     @Value("${phone.validation.apikey:123}")
     private String phoneValidationKey;
 
+    /** The Constant PHONE_VALIDATION_URL */
     private static final String PHONE_VALIDATION_URL = "https://phonevalidation.abstractapi.com/v1/?api_key=";
 
+    /**
+     * MemberRegistrationServiceImpl constructor
+     *
+     * @param authenticationManager
+     *            the authentication manager
+     * @param memberRepository
+     *            the member repository
+     * @param passwordEncoder
+     *            the password encoder
+     */
     public MemberRegistrationServiceImpl(AuthenticationManager authenticationManager, MemberRepository memberRepository,
         PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
@@ -71,6 +91,12 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         return authenticate(newMember.getEmail(), newMember.getPassword());
     }
 
+    /**
+     * Validate uniqueness of new member details
+     *
+     * @param newMember
+     *            the new member
+     */
     private void validateUniqueness(RegisterMemberDto newMember) {
         memberRepository.findByEmail(newMember.getEmail()).ifPresent(existing -> {
             log.error("Email already registered: {}", newMember.getEmail());
@@ -86,6 +112,12 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         }
     }
 
+    /**
+     * Validate if phone number is valid
+     *
+     * @param phoneNumber
+     *            the phone number
+     */
     private void validatePhoneNumber(String phoneNumber) {
         if (!validatePhone(phoneNumber)) {
             throw new AppAuthenticationException("Invalid phone number: " + phoneNumber,
@@ -93,7 +125,14 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         }
     }
 
-    boolean validatePhone(String phoneNumber) {
+    /**
+     * Call client to validate phone number
+     *
+     * @param phoneNumber
+     *            the phone number
+     * @return boolean
+     */
+    private boolean validatePhone(String phoneNumber) {
         try {
             String url = PHONE_VALIDATION_URL + phoneValidationKey + "&phone=" + phoneNumber;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
@@ -105,10 +144,26 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         }
     }
 
+    /**
+     * Authenticat member
+     *
+     * @param username
+     *            the username
+     * @param password
+     *            the password
+     * @return authentication
+     */
     private Authentication authenticate(String username, String password) {
         return authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
     }
 
+    /**
+     * Encrypt Password
+     *
+     * @param rawPassword
+     *            the raw password
+     * @return encrypted password
+     */
     private String encryptPassword(String rawPassword) {
         return passwordEncoder.encode(rawPassword);
     }

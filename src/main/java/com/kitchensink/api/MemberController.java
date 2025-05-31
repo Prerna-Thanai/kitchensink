@@ -44,6 +44,10 @@ public class MemberController {
         return ResponseEntity.ok(memberDto);
     }
 
+    @Operation(summary = "Get all members")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Members list recieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid email or password"), @ApiResponse(
+                responseCode = "500", description = "Internal server error") })
     @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedModel<MemberDto>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
@@ -52,6 +56,16 @@ public class MemberController {
         return ResponseEntity.ok(new PagedModel<>(members));
     }
 
+    /**
+     * Delete member by ID.
+     *
+     * @param id
+     *            the id of the member
+     * @return the response entity
+     */
+    @Operation(summary = "Delete Member by ID", description = "Delete a member using their ID.")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Member not found") })
     @DeleteMapping("/{memberId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteUserById(@PathVariable String memberId) {

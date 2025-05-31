@@ -7,11 +7,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -85,7 +82,7 @@ public class AuthController {
         String message) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
-                .maxAge(tokenProvider.getJwtAccessExpiration()).build();
+            .maxAge(tokenProvider.getJwtAccessExpiration()).build();
 
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
@@ -96,29 +93,36 @@ public class AuthController {
                     .getJwtRefreshExpiration().toMillis()));
     }
 
-    @GetMapping("/check")
-    public ResponseEntity<?> check() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    // @Operation(summary = "check")
+    // @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Is member authenticated"),
+    // @ApiResponse(responseCode = "401", description = "Invalid token details"), @ApiResponse(
+    // responseCode = "500", description = "Internal server error") })
+    // @GetMapping("/check")
+    // public ResponseEntity<?> check() {
+    // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    //
+    // if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+    // return ResponseEntity.ok().build(); // User is authenticated
+    // }
+    //
+    // return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    // }
 
-        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
-            return ResponseEntity.ok().build(); // User is authenticated
-        }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Not authenticated
-    }
-
+    @Operation(summary = "Logout")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member logged out successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid email or password"), @ApiResponse(
+                responseCode = "500", description = "Internal server error") })
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout() {
         return getTokenRemovalCookiesResponseEntity();
     }
 
     public ResponseEntity<Map<String, Object>> getTokenRemovalCookiesResponseEntity() {
-        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true)
-                                                        .path("/").maxAge(0).build();
+        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true).path("/").maxAge(0)
+            .build();
 
-        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true)
-                                                         .path(refreshCookiePath)
-                                                         .maxAge(0).build();
+        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true).path(
+            refreshCookiePath).maxAge(0).build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(
             HttpHeaders.SET_COOKIE, clearRefreshToken.toString()).body(Map.of("message", "Logged out successfully"));

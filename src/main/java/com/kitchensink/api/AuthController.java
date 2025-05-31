@@ -85,11 +85,11 @@ public class AuthController {
         String message) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
-            .maxAge(tokenProvider.getJwtAccessExpiration()).build();
+                .sameSite("None").maxAge(tokenProvider.getJwtAccessExpiration()).build();
 
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
-            refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
+            refreshCookiePath).sameSite("None").maxAge(tokenProvider.getJwtRefreshExpiration()).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
             HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", message, "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider
@@ -113,12 +113,12 @@ public class AuthController {
     }
 
     public ResponseEntity<Map<String, Object>> getTokenRemovalCookiesResponseEntity() {
-        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true).path("/").maxAge(0)
-            .build();
+        ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true)
+                                                        .path("/").maxAge(0).build();
 
-        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true).path(
-            refreshCookiePath) // should match path used when setting it
-            .maxAge(0).build();
+        ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true)
+                                                         .sameSite("None").path(refreshCookiePath)
+                                                         .maxAge(0).build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(
             HttpHeaders.SET_COOKIE, clearRefreshToken.toString()).body(Map.of("message", "Logged out successfully"));

@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -117,24 +118,26 @@ public class JwtTokenProvider {
         validateToken(authentication, token, REFRESH_TOKEN);
     }
 
-    private void validateToken(Authentication authentication, String token, String tokenType) {
-        try {
+    private void validateToken(Authentication authentication, String token, String tokenType){
+        try{
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
             String tokenTypeInClaim = claims.get(TOKEN_TYPE_CLAIM, String.class);
-            if (!tokenType.equals(tokenTypeInClaim)) {
-                throw new AppAuthenticationException("Refresh Token not found", ErrorType.TOKEN_INVALID);
+            if(!tokenType.equals(tokenTypeInClaim)){
+                throw new AppAuthenticationException(tokenType + " token not found", ErrorType.TOKEN_INVALID);
             }
-            if (!isTokenExpired(claims)) {
+            if(!isTokenExpired(claims)){
                 throw new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
             }
-            if (authentication != null && !getUsernameFromClaims(claims).equals(authentication.getName())) {
+            if(authentication != null && !getUsernameFromClaims(claims).equals(authentication.getName())){
                 throw new AppAuthenticationException("Invalid user", ErrorType.TOKEN_INVALID);
             }
 
-            if (authentication != null) {
+            if(authentication != null){
                 authService.loadUserByUsername(authentication.getName());
             }
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (ExpiredJwtException exception){
+            throw new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
+        } catch (JwtException | IllegalArgumentException e){
             log.error("Invalid JWT Refresh token: {}", token, e);
             throw new AppAuthenticationException("Invalid Token", ErrorType.TOKEN_INVALID);
         }

@@ -54,11 +54,11 @@ public class MemberRegistrationController {
     private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
-                                                         .sameSite("None").maxAge(tokenProvider.getJwtAccessExpiration()).build();
+                                                         .maxAge(tokenProvider.getJwtAccessExpiration()).build();
 
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
-            refreshCookiePath).sameSite("None").maxAge(tokenProvider.getJwtRefreshExpiration()).build();
+            refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
             HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", "Registration successful", "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider

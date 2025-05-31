@@ -85,11 +85,11 @@ public class AuthController {
         String message) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
-                .sameSite("None").maxAge(tokenProvider.getJwtAccessExpiration()).build();
+                .maxAge(tokenProvider.getJwtAccessExpiration()).build();
 
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
-            refreshCookiePath).sameSite("None").maxAge(tokenProvider.getJwtRefreshExpiration()).build();
+            refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
             HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", message, "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider
@@ -117,7 +117,7 @@ public class AuthController {
                                                         .path("/").maxAge(0).build();
 
         ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true)
-                                                         .sameSite("None").path(refreshCookiePath)
+                                                         .path(refreshCookiePath)
                                                          .maxAge(0).build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(

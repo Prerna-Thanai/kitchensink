@@ -1,5 +1,7 @@
 package com.kitchensink.config.security;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,8 +20,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Configuration
 public class SecurityConfig {
 
@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final String allowedOrigins;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-        @Value("${cors.allowed-origins:${CORS_ALLOWED_ORIGINS:*}}") String allowedOrigins) {
+        @Value("${cors.allowed-origins:${CORS_ALLOWED_ORIGINS:http://localhost:4200}}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.allowedOrigins = allowedOrigins;
     }
@@ -61,7 +61,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_URLS).permitAll().anyRequest().authenticated())

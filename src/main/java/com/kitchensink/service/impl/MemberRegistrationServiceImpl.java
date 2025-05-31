@@ -1,7 +1,5 @@
 package com.kitchensink.service.impl;
 
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.dto.RegisterMemberDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.exception.ConflictException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberRegistrationService;
@@ -24,25 +23,23 @@ import com.kitchensink.service.MemberRegistrationService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * The Class MemberRegistrationServiceImpl.
+ * Service implementation for member registration.
  */
 @Service
 @Slf4j
 public class MemberRegistrationServiceImpl implements MemberRegistrationService {
 
     private final AuthenticationManager authenticationManager;
-
     private final MemberRepository memberRepository;
-
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
     private RestTemplate restTemplate;
 
-    private final String phoneValidationUrl = "https://phonevalidation.abstractapi.com/v1/?api_key=";
-
     @Value("${phone.validation.apikey:123}")
     private String phoneValidationKey;
+
+    private static final String PHONE_VALIDATION_URL = "https://phonevalidation.abstractapi.com/v1/?api_key=";
 
     public MemberRegistrationServiceImpl(AuthenticationManager authenticationManager, MemberRepository memberRepository,
         PasswordEncoder passwordEncoder) {
@@ -52,52 +49,58 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     }
 
     /**
-     * Register members.
+     * Registers a new member after validation.
      *
-     * @param member
-     *            the member
-     * @return
-     * @throws Exception
-     *             the Exception
+     * @param newMember
+     *            the new member data
+     * @return Authentication object upon successful registration
      */
     @Override
     public Authentication register(RegisterMemberDto newMember) {
-        log.info("Registering {}", newMember.getEmail());
-        // Check if member with same email or phone number already exists
-        Optional<Member> existingMemberByEmailOptional = memberRepository.findByEmail(newMember.getEmail());
-        if (existingMemberByEmailOptional.isPresent()) {
-            log.error("Member with email {} already exists", newMember.getEmail());
-            throw new ConflictException("Member with email " + newMember.getEmail() + " already exists",
-                ErrorType.EMAIL_ALREADY_REGISTERED);
-        }
-        Member existingMemberByPhone = memberRepository.findByPhoneNumber(newMember.getPhoneNumber());
-        if (existingMemberByPhone != null) {
-            log.error("Member with phone number {} already exists", newMember.getPhoneNumber());
-            throw new ConflictException("Member with phone number " + newMember.getPhoneNumber() + " already "
-                + "exists", ErrorType.USER_ALREADY_EXISTS);
-        }
-        // disabling for now but this is working
-        // if (!validatePhone(newMember.getPhoneNumber())) {
-        // throw new AuthenticationException("Phone number " + newMember.getPhoneNumber() + " is invalid",
-        // ErrorType.PHONE_NUMBER_INVALID);
-        // }
+        log.info("Registering member: {}", newMember.getEmail());
+
+        validateUniqueness(newMember);
+        validatePhoneNumber(newMember.getPhoneNumber());
+
         Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).active(true).phoneNumber(
             newMember.getPhoneNumber()).password(encryptPassword(newMember.getPassword())).roles(newMember.getRoles())
             .build();
+
         memberRepository.insert(member);
+
         return authenticate(newMember.getEmail(), newMember.getPassword());
+    }
+
+    private void validateUniqueness(RegisterMemberDto newMember) {
+        memberRepository.findByEmail(newMember.getEmail()).ifPresent(existing -> {
+            log.error("Email already registered: {}", newMember.getEmail());
+            throw new ConflictException("Email already registered: " + newMember.getEmail(),
+                ErrorType.EMAIL_ALREADY_REGISTERED);
+        });
+
+        Member existingByPhone = memberRepository.findByPhoneNumber(newMember.getPhoneNumber());
+        if (existingByPhone != null) {
+            log.error("Phone number already registered: {}", newMember.getPhoneNumber());
+            throw new ConflictException("Phone number already registered: " + newMember.getPhoneNumber(),
+                ErrorType.USER_ALREADY_EXISTS);
+        }
+    }
+
+    private void validatePhoneNumber(String phoneNumber) {
+        if (!validatePhone(phoneNumber)) {
+            throw new AppAuthenticationException("Invalid phone number: " + phoneNumber,
+                ErrorType.PHONE_NUMBER_INVALID);
+        }
     }
 
     private boolean validatePhone(String phoneNumber) {
         try {
-            ResponseEntity<String> response = restTemplate.getForEntity(phoneValidationUrl + phoneValidationKey
-                + "&phone=" + phoneNumber, String.class);
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(response.getBody());
-
-            boolean isValid = jsonNode.path("valid").asBoolean();
-            return isValid;
+            String url = PHONE_VALIDATION_URL + phoneValidationKey + "&phone=" + phoneNumber;
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            JsonNode jsonNode = new ObjectMapper().readTree(response.getBody());
+            return jsonNode.path("valid").asBoolean();
         } catch (Exception e) {
+            log.warn("Phone validation failed: {}", e.getMessage());
             return false;
         }
     }
@@ -109,5 +112,4 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     private String encryptPassword(String rawPassword) {
         return passwordEncoder.encode(rawPassword);
     }
-
 }

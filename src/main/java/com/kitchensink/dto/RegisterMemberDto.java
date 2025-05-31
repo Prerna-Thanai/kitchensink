@@ -2,6 +2,8 @@ package com.kitchensink.dto;
 
 import java.util.List;
 
+import com.kitchensink.validation.ValidUserRole;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -9,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
 
@@ -19,6 +22,7 @@ import lombok.ToString;
  */
 @Data
 @AllArgsConstructor
+@Builder
 public class RegisterMemberDto {
 
     /** The name. */
@@ -47,7 +51,8 @@ public class RegisterMemberDto {
     private String password;
 
     @NotEmpty(message = "At least one role must be added")
-    @Size(min = 1, max = 10, message = "Max of 10 roles can be assigned")
+    @Size(min = 1, max = 1, message = "Max of 1 roles can be assigned")
+    @ValidUserRole(message = "Member can only register as 'USER'")
     private List<String> roles;
 
 }

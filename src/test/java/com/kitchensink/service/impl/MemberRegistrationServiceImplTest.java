@@ -1,155 +1,120 @@
 package com.kitchensink.service.impl;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Optional;
-
+import com.kitchensink.dto.RegisterMemberDto;
+import com.kitchensink.entity.Member;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.exception.ConflictException;
+import com.kitchensink.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
-import com.kitchensink.dto.RegisterMemberDto;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.ConflictException;
-import com.kitchensink.repository.MemberRepository;
+import java.util.List;
+import java.util.Optional;
 
-class MemberRegistrationServiceImplTest {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-    @Mock
-    AuthenticationManager authenticationManager;
-
-    @Mock
-    MemberRepository memberRepository;
-
-    @Mock
-    PasswordEncoder passwordEncoder;
+@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+class MemberRegistrationServiceImplTest{
 
     @Mock
-    RestTemplate restTemplate;
+    private AuthenticationManager authenticationManager;
+    @Mock
+    private MemberRepository memberRepository;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private RestTemplate restTemplate;
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
-    MemberRegistrationServiceImpl registrationService;
+    private MemberRegistrationServiceImpl registrationService;
+
+    private RegisterMemberDto newMember;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    void setUp(){
+        newMember = new RegisterMemberDto();
+        newMember.setEmail("test@example.com");
+        newMember.setName("Test User");
+        newMember.setPassword("password123");
+        newMember.setPhoneNumber("1234567890");
+        newMember.setRoles(List.of("ROLE_USER"));
+
+        ReflectionTestUtils.setField(registrationService, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(registrationService, "phoneValidationKey", "test-api-key");
     }
 
     @Test
-    void testRegister_Success() {
-        RegisterMemberDto dto = RegisterMemberDto.builder().email("test@example.com").name("John").password("secret")
-            .phoneNumber("1234567890").roles(Arrays.asList("USER")).build();
+    void testRegister_Success() throws Exception{
+        when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(null);
+        when(restTemplate.getForEntity(anyString(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok("{\"valid\":true}"));
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
 
-        Member insertedMember = Member.builder().email(dto.getEmail()).phoneNumber(dto.getPhoneNumber()).name(dto
-            .getName()).active(true).password("encoded-password").roles(dto.getRoles()).build();
+        Authentication result = registrationService.register(newMember);
 
-        when(memberRepository.findByEmail(dto.getEmail())).thenReturn(Optional.empty());
-        when(memberRepository.findByPhoneNumber(dto.getPhoneNumber())).thenReturn(null);
-        when(passwordEncoder.encode(dto.getPassword())).thenReturn("encoded-password");
-        when(memberRepository.insert(any(Member.class))).thenReturn(insertedMember);
-
-        Authentication mockAuth = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(mockAuth);
-
-        Authentication result = registrationService.register(dto);
-        assertNotNull(result);
+        assertThat(result).isNotNull();
+        verify(memberRepository).insert(any(Member.class));
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
     }
 
     @Test
-    void testRegister_EmailAlreadyExists() {
-        RegisterMemberDto dto = RegisterMemberDto.builder().email("existing@example.com").build();
+    void testRegister_EmailAlreadyExists(){
+        when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.of(new Member()));
 
-        when(memberRepository.findByEmail(dto.getEmail())).thenReturn(Optional.of(new Member()));
-
-        ConflictException ex = assertThrows(ConflictException.class, () -> registrationService.register(dto));
-        assertEquals(ErrorType.EMAIL_ALREADY_REGISTERED, ex.getErrorType());
+        assertThatThrownBy(() -> registrationService.register(newMember))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Email already registered: test@example.com");
     }
 
     @Test
-    void testRegister_PhoneAlreadyExists() {
-        RegisterMemberDto dto = RegisterMemberDto.builder().email("new@example.com").phoneNumber("9999999999").build();
+    void testRegister_PhoneAlreadyExists(){
+        when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(new Member());
 
-        when(memberRepository.findByEmail(dto.getEmail())).thenReturn(Optional.empty());
-        when(memberRepository.findByPhoneNumber(dto.getPhoneNumber())).thenReturn(new Member());
-
-        ConflictException ex = assertThrows(ConflictException.class, () -> registrationService.register(dto));
-        assertEquals(ErrorType.USER_ALREADY_EXISTS, ex.getErrorType());
+        assertThatThrownBy(() -> registrationService.register(newMember))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Phone number already registered: 1234567890");
     }
 
     @Test
-    void testEncryptPassword() {
-        String raw = "rawPass";
-        String encoded = "encodedPass";
+    void testRegister_InvalidPhone(){
+        when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(null);
+        when(restTemplate.getForEntity(anyString(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok("{\"valid\":false}"));
 
-        when(passwordEncoder.encode(raw)).thenReturn(encoded);
-
-        // Use reflection to invoke private method
-        var method = assertDoesNotThrow(() -> MemberRegistrationServiceImpl.class.getDeclaredMethod("encryptPassword",
-            String.class));
-        method.setAccessible(true);
-
-        String result = assertDoesNotThrow(() -> (String) method.invoke(registrationService, raw));
-
-        assertEquals(encoded, result);
+        assertThatThrownBy(() -> registrationService.register(newMember))
+                .isInstanceOf(AppAuthenticationException.class)
+                .hasMessageContaining("Invalid phone number: 1234567890");
     }
 
     @Test
-    void testAuthenticate() {
-        Authentication mockAuth = mock(Authentication.class);
-        when(authenticationManager.authenticate(any())).thenReturn(mockAuth);
+    void testValidatePhone_ValidationApiFails_ReturnsFalse(){
+        when(restTemplate.getForEntity(anyString(), eq(String.class)))
+                .thenThrow(new RuntimeException("API failure"));
 
-        var method = assertDoesNotThrow(() -> MemberRegistrationServiceImpl.class.getDeclaredMethod("authenticate",
-            String.class, String.class));
-        method.setAccessible(true);
+        boolean result = registrationService.validatePhone("1234567890");
 
-        Authentication result = assertDoesNotThrow(() -> (Authentication) method.invoke(registrationService, "user",
-            "pass"));
-
-        assertNotNull(result);
-    }
-
-    @Test
-    void testValidatePhone_ValidResponse() throws Exception {
-        String phone = "1234567890";
-        String body = "{\"valid\": true}";
-
-        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(ResponseEntity.ok(body));
-
-        var method = MemberRegistrationServiceImpl.class.getDeclaredMethod("validatePhone", String.class);
-        method.setAccessible(true);
-
-        boolean result = (boolean) method.invoke(registrationService, phone);
-        assertTrue(result);
-    }
-
-    @Test
-    void testValidatePhone_InvalidResponseOrException() throws Exception {
-        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenThrow(new RuntimeException("fail"));
-
-        var method = MemberRegistrationServiceImpl.class.getDeclaredMethod("validatePhone", String.class);
-        method.setAccessible(true);
-
-        boolean result = (boolean) method.invoke(registrationService, "invalid-phone");
-        assertFalse(result);
+        assertThat(result).isFalse();
     }
 }

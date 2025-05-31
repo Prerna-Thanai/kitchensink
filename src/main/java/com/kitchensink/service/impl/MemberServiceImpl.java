@@ -1,18 +1,5 @@
 package com.kitchensink.service.impl;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.kitchensink.dto.MemberDto;
 import com.kitchensink.dto.UpdateMemberRequest;
 import com.kitchensink.entity.Member;
@@ -20,8 +7,17 @@ import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -79,7 +75,7 @@ public class MemberServiceImpl implements MemberService {
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
             log.error("Member with memberId {} doesn't exist", memberId);
-            throw new AppAuthenticationException("Member with memberId " + memberId + "doesn't exist",
+            throw new AppAuthenticationException("Member with memberId " + memberId + " doesn't exist",
                 ErrorType.MEMBER_NOT_FOUND);
         }
         memberOptional.get().setActive(false);
@@ -92,7 +88,7 @@ public class MemberServiceImpl implements MemberService {
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
             log.error("Member with memberId {} doesn't exist", memberId);
-            throw new AppAuthenticationException("Member with memberId " + memberId + "doesn't exist",
+            throw new AppAuthenticationException("Member with memberId " + memberId + " doesn't exist",
                 ErrorType.MEMBER_NOT_FOUND);
         }
 

@@ -93,7 +93,7 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         }
     }
 
-    private boolean validatePhone(String phoneNumber) {
+    boolean validatePhone(String phoneNumber) {
         try {
             String url = PHONE_VALIDATION_URL + phoneValidationKey + "&phone=" + phoneNumber;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);

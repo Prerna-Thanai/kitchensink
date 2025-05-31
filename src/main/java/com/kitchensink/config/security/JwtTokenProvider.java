@@ -12,7 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AuthenticationException;
+import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.service.impl.AuthServiceImpl;
 
 import io.jsonwebtoken.Claims;
@@ -105,7 +105,7 @@ public class JwtTokenProvider {
 
     public void validateAccessToken(String token) {
         if (token == null || token.isEmpty()) {
-            throw new AuthenticationException("Token is missing", ErrorType.TOKEN_NOT_FOUND);
+            throw new AppAuthenticationException("Token is missing", ErrorType.TOKEN_NOT_FOUND);
         }
         validateToken(null, token, ACCESS_TOKEN);
     }
@@ -122,13 +122,13 @@ public class JwtTokenProvider {
             Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
             String tokenTypeInClaim = claims.get(TOKEN_TYPE_CLAIM, String.class);
             if (!tokenType.equals(tokenTypeInClaim)) {
-                throw new AuthenticationException("Refresh Token not found", ErrorType.TOKEN_INVALID);
+                throw new AppAuthenticationException("Refresh Token not found", ErrorType.TOKEN_INVALID);
             }
             if (!isTokenExpired(claims)) {
-                throw new AuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
+                throw new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED);
             }
             if (authentication != null && !getUsernameFromClaims(claims).equals(authentication.getName())) {
-                throw new AuthenticationException("Invalid user", ErrorType.TOKEN_INVALID);
+                throw new AppAuthenticationException("Invalid user", ErrorType.TOKEN_INVALID);
             }
 
             if (authentication != null) {
@@ -136,7 +136,7 @@ public class JwtTokenProvider {
             }
         } catch (JwtException | IllegalArgumentException e) {
             log.error("Invalid JWT Refresh token: {}", token, e);
-            throw new AuthenticationException("Invalid Token", ErrorType.TOKEN_INVALID);
+            throw new AppAuthenticationException("Invalid Token", ErrorType.TOKEN_INVALID);
         }
     }
 }

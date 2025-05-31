@@ -3,16 +3,20 @@ package com.kitchensink.enums;
 import lombok.Getter;
 
 @Getter
-public enum ErrorType {
-    USER_ALREADY_EXISTS("User already exists"), EMAIL_ALREADY_REGISTERED("Email is already registered"), TOKEN_EXPIRED(
-        "Token has expired"), TOKEN_INVALID("Token is invalid"), TOKEN_NOT_FOUND("Token not found"),
-    MEMBER_NOT_AUTHENTICATED("Member is not authenticated"), MEMBER_NOT_FOUND("Member not found"), ACCOUNT_BLOCKED(
-        "Account blocked"), PHONE_NUMBER_INVALID("Phone number is invalid");
+public enum ErrorType{
+    USER_ALREADY_EXISTS,
+    EMAIL_ALREADY_REGISTERED,
+    TOKEN_EXPIRED,
+    TOKEN_INVALID,
+    TOKEN_NOT_FOUND,
+    MEMBER_NOT_AUTHENTICATED,
+    MEMBER_NOT_FOUND,
+    ACCOUNT_BLOCKED,
+    PHONE_NUMBER_INVALID,
+    INVALID_CREDENTIALS,
+    NOT_FOUND,
+    REQUEST_VALIDATION_FAILED,
+    UNKNOWN
 
-    private final String message;
-
-    ErrorType(String message) {
-        this.message = message;
-    }
 
 }

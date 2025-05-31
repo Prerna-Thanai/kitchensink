@@ -22,9 +22,9 @@ import lombok.ToString;
 public class RegisterMemberDto {
 
     /** The name. */
-    @NotNull
+    @NotNull(message = "Name must not be null")
     @Size(min = 1, max = 30)
-    @Pattern(regexp = "[^0-9]*", message = "Can only contains alphabets")
+    @Pattern(regexp = "[^0-9]*", message = "Name can only contains alphabets")
     private String name;
 
     /** The email. */
@@ -34,7 +34,7 @@ public class RegisterMemberDto {
     private String email;
 
     /** The phone number. */
-    @NotNull
+    @NotNull(message = "Phone number is required.")
     @Size(min = 10, max = 12)
     @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Invalid mobile number")
     private String phoneNumber;

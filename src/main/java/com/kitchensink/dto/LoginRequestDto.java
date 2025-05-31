@@ -9,8 +9,8 @@ import lombok.ToString;
 public class LoginRequestDto{
 
     /** The email. */
-    @NotNull
-    @Email(message = "Email should not be empty")
+    @NotNull(message = "Email should not be empty")
+    @Email(message = "Email must be well formed")
     private String email;
 
     /** The password. */

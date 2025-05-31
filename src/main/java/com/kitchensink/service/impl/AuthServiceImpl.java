@@ -25,11 +25,11 @@ public class AuthServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Optional<Member> memberOptional = memberRepository.findByEmailAndActiveTrue(email);
         if (memberOptional.isEmpty()) {
-            throw new UsernameNotFoundException("User with email " + email + " not found");
+            throw new UsernameNotFoundException("Member with email " + email + " not found");
         }
         Member member = memberOptional.get();
         if (member.isBlocked()) {
-            throw new UsernameNotFoundException("User with email " + email + " is blocked");
+            throw new UsernameNotFoundException("Member with email " + email + " is blocked");
         }
         return User.withUsername(email).password(member.getPassword()).authorities(member.getRoles().stream().map(
             SimpleGrantedAuthority::new).toList()).disabled(!member.isActive()).build();

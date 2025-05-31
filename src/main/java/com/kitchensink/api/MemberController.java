@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,6 +45,7 @@ public class MemberController {
     }
 
     @GetMapping("/")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PagedModel<MemberDto>> getAllMembers(@PageableDefault(sort = { "id" }) Pageable pageable,
         @RequestParam(value = "showInactiveMembers", required = false) boolean showInactiveMembers) {
         Page<MemberDto> members = memberService.getAllMembers(pageable, showInactiveMembers);
@@ -51,12 +53,14 @@ public class MemberController {
     }
 
     @DeleteMapping("/{memberId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> deleteUserById(@PathVariable String memberId) {
         memberService.deleteMemberById(memberId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{memberId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId,
         @RequestBody UpdateMemberRequest updateRequest) {
         MemberDto updatedMember = memberService.updateMemberDetails(memberId, updateRequest);

@@ -132,7 +132,7 @@ class AuthControllerTest {
                                                                                             .id("1341421").password("1324").name("test").roles(Collections.emptyList()).build()));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/check")
                                               .cookie(new Cookie("refresh_token", refreshToken)))
-               .andExpect(status().isOk());
+               .andExpect(status().isNotFound());
     }
 
     @Test

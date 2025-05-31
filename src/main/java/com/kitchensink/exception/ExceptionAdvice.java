@@ -43,7 +43,7 @@ public class ExceptionAdvice{
     @ExceptionHandler(BaseApplicationException.class)
     public ResponseEntity<Object> handleException(BaseApplicationException exception, WebRequest request){
         return handleException(exception, exception.getMessage(), exception.getErrorType(),
-                HttpStatus.UNAUTHORIZED);
+                exception.getStatus());
     }
 
     @ExceptionHandler({UsernameNotFoundException.class, BadCredentialsException.class})

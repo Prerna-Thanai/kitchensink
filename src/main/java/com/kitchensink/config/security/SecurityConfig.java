@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final String allowedOrigins;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-        @Value("${cors.allowed-origins:http://localhost:4200}") String allowedOrigins) {
+        @Value("${cors.allowed-origins:${CORS_ALLOWED_ORIGINS:*}}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.allowedOrigins = allowedOrigins;
     }

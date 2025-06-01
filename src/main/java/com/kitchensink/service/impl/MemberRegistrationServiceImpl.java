@@ -1,11 +1,5 @@
 package com.kitchensink.service.impl;
 
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.kitchensink.dto.RegisterMemberDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
@@ -13,8 +7,14 @@ import com.kitchensink.exception.ConflictException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberRegistrationService;
 import com.kitchensink.service.MemberService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 
 /**
  * The Class MemberRegistrationServiceImpl.
@@ -34,7 +34,7 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     /** The password encoder */
     private final PasswordEncoder passwordEncoder;
 
-    /** The member service */
+/** The member service */
     private final MemberService memberService;
 
     /**
@@ -69,9 +69,14 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
         validateUniqueness(newMember);
         memberService.validatePhoneNumber(newMember.getPhoneNumber());
 
-        Member member = Member.builder().name(newMember.getName()).email(newMember.getEmail()).active(true).phoneNumber(
-            newMember.getPhoneNumber()).password(encryptPassword(newMember.getPassword())).roles(newMember.getRoles())
-            .build();
+        Member member = new Member();
+        member.setName(newMember.getName());
+        member.setEmail(newMember.getEmail());
+        member.setPhoneNumber(newMember.getPhoneNumber());
+        member.setPassword(encryptPassword(newMember.getPassword()));
+        member.setActive(true);
+        member.setBlocked(false);
+        member.setRoles(new ArrayList<>(newMember.getRoles()));
 
         memberRepository.insert(member);
 

@@ -1,14 +1,9 @@
 package com.kitchensink.exception;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
-
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.springframework.context.MessageSourceResolvable;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.kitchensink.enums.ErrorType;
+import jakarta.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -24,14 +19,16 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.kitchensink.enums.ErrorType;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import jakarta.annotation.Nonnull;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
+import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
 /**
  * The Class ExceptionAdvice.
@@ -125,24 +122,6 @@ public class ExceptionAdvice {
     }
 
     /**
-     * Handle Method Validation Exception
-     *
-     * @param exception
-     *            the exception
-     * @param request
-     *            the request
-     * @return response entity
-     */
-    @ExceptionHandler(HandlerMethodValidationException.class)
-    protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex,
-        @Nonnull HttpHeaders headers, @Nonnull HttpStatusCode status, @Nonnull WebRequest request) {
-        String errors = ex.getAllValidationResults().stream().flatMap(result -> result.getResolvableErrors().stream())
-            .map(MessageSourceResolvable::getDefaultMessage).collect(Collectors.joining(", "));
-
-        return handleException(ex, errors, ErrorType.REQUEST_VALIDATION_FAILED, ex.getStatusCode());
-    }
-
-    /**
      * Handle MessageNotReadable Exception
      *
      * @param exception
@@ -153,7 +132,7 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadable(@Nonnull HttpMessageNotReadableException exception,
-        @Nonnull HttpHeaders headers, @Nonnull HttpStatusCode status, @Nonnull WebRequest request) {
+                                                               @Nonnull WebRequest request) {
         final String message;
         if (exception.getCause()instanceof JsonMappingException jsonMappingException) {
             String path = jsonMappingException.getPath().stream().map(ref -> {
@@ -182,8 +161,7 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     protected ResponseEntity<Object> handleHttpMediaTypeNotSupported(
-        @Nonnull HttpMediaTypeNotSupportedException exception, @Nonnull HttpHeaders headers,
-        @Nonnull HttpStatusCode status, @Nonnull WebRequest request) {
+        @Nonnull HttpMediaTypeNotSupportedException exception, @Nonnull WebRequest request) {
         return handleException(exception, "Unsupported Media Type", ErrorType.REQUEST_VALIDATION_FAILED,
             UNSUPPORTED_MEDIA_TYPE);
     }
@@ -199,10 +177,9 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
-        @Nonnull HttpRequestMethodNotSupportedException exception, @Nonnull HttpHeaders headers,
-        @Nonnull HttpStatusCode status, @Nonnull WebRequest request) {
+        @Nonnull HttpRequestMethodNotSupportedException exception, @Nonnull WebRequest request) {
         return handleException(exception, "Request Type not supported", ErrorType.REQUEST_VALIDATION_FAILED,
-            UNSUPPORTED_MEDIA_TYPE);
+            METHOD_NOT_ALLOWED);
     }
 
     /**
@@ -216,8 +193,7 @@ public class ExceptionAdvice {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     protected ResponseEntity<Object> handleMissingServletRequestParameter(
-        @Nonnull MissingServletRequestParameterException exception, @Nonnull HttpHeaders headers,
-        @Nonnull HttpStatusCode status, @Nonnull WebRequest request) {
+        @Nonnull MissingServletRequestParameterException exception, @Nonnull WebRequest request) {
         String message = String.format("Required parameter '%s' is not present", exception.getParameterName());
         return handleException(exception, message, ErrorType.REQUEST_VALIDATION_FAILED, BAD_REQUEST);
     }
@@ -227,8 +203,6 @@ public class ExceptionAdvice {
      *
      * @param exception
      *            the exception
-     * @param request
-     *            the request
      * @return response entity
      */
     private ResponseEntity<Object> handleException(Exception exception, String message, ErrorType errorType,
@@ -242,7 +216,7 @@ public class ExceptionAdvice {
      *
      * @param message
      *            the message
-     * @param error
+     * @param errorType
      *            type the error type
      * @param status
      *            the status

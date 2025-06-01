@@ -5,6 +5,7 @@ import com.kitchensink.dto.RegisterMemberDto;
 import com.kitchensink.service.MemberRegistrationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,8 +23,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -44,12 +47,6 @@ class MemberRegistrationControllerTest{
     @MockBean
     private MemberRegistrationService memberRegistrationService;
 
-//    @BeforeEach
-//    void setUp(){
-//
-//        ReflectionTestUtils.setField(registrationService, "phoneValidationKey", "test-api-key");
-//    }
-
     @Test
     void testRegisterMember() throws Exception{
 
@@ -66,13 +63,14 @@ class MemberRegistrationControllerTest{
                                         SimpleGrantedAuthority::new).toList()).disabled(false).build();
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, dto.getPassword());
         ReflectionTestUtils.setField(authentication, "authenticated", true);
-
-        when(memberRegistrationService.register(dto))
+        ArgumentCaptor<RegisterMemberDto> dtoCaptor = ArgumentCaptor.forClass(RegisterMemberDto.class);
+        when(memberRegistrationService.register(dtoCaptor.capture()))
                 .thenReturn(authentication);
 
+        String requestBody = objectMapper.writeValueAsString(dto);
         mockMvc.perform(post("/api/auth/register")
                        .contentType(MediaType.APPLICATION_JSON)
-                       .content(objectMapper.writeValueAsString(dto)))
+                       .content(requestBody))
                .andExpect(status().isOk())
                .andExpect(header().string(HttpHeaders.SET_COOKIE,
                        anyOf(containsString("access_token="))
@@ -80,5 +78,8 @@ class MemberRegistrationControllerTest{
                .andExpect(jsonPath("$.message").value("Registration successful"))
                .andExpect(jsonPath("$.accessTokenExpiry").isNumber())
                .andExpect(jsonPath("$.refreshTokenExpiry").isNumber());
+
+        assertEquals(dtoCaptor.getValue(), dto, "Captured DTO should match the original DTO");
+        assertEquals(dtoCaptor.getValue().hashCode(), dto.hashCode());
     }
 }

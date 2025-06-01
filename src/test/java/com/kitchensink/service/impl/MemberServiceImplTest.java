@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,6 +70,7 @@ class MemberServiceImplTest {
         mockMember.setBlocked(false);
         mockMember.setRoles(List.of("ROLE_USER"));
         mockMember.setCreatedAt(LocalDateTime.now());
+        mockMember.setUpdatedAt(LocalDateTime.now());
 
         ReflectionTestUtils.setField(memberService, "phoneValidationKey", "test-api-key");
         ReflectionTestUtils.setField(memberService, "restTemplate", restTemplate);
@@ -83,10 +85,20 @@ class MemberServiceImplTest {
 
         when(memberRepository.findByEmail(mockMember.getEmail())).thenReturn(Optional.of(mockMember));
 
+        MemberDto memberDto = new MemberDto();
+        memberDto.setId(mockMember.getId());
+        memberDto.setName(mockMember.getName());
+        memberDto.setEmail(mockMember.getEmail());
+        memberDto.setPhoneNumber(mockMember.getPhoneNumber());
+        memberDto.setRoles(mockMember.getRoles());
+        memberDto.setJoiningDate(mockMember.getCreatedAt().toLocalDate());
+        memberDto.setActive(mockMember.isActive());
+        memberDto.setBlocked(mockMember.isBlocked());
+        memberDto.setRoles(new ArrayList<>(mockMember.getRoles()));
         MemberDto dto = memberService.currentUserData(auth);
 
-        assertThat(dto.getEmail()).isEqualTo(mockMember.getEmail());
-        assertThat(dto.getName()).isEqualTo(mockMember.getName());
+        assertEquals(memberDto, dto);
+        assertEquals(memberDto.hashCode(), dto.hashCode());
     }
 
     @Test
@@ -155,6 +167,27 @@ class MemberServiceImplTest {
 
         assertThat(result.getName()).isEqualTo("Updated Name");
         assertThat(result.getPhoneNumber()).isEqualTo("1234567890");
+        assertThat(result.getRoles()).contains("ROLE_ADMIN");
+        assertThat(result.isBlocked()).isFalse();
+    }
+
+    @Test
+    void testUpdateMemberDetailsWithNumber_Success() {
+        UpdateMemberRequest updateRequest = new UpdateMemberRequest();
+        updateRequest.setName("Updated Name");
+        updateRequest.setPhoneNumber("1234567899");
+        updateRequest.setRoles(List.of("ROLE_ADMIN"));
+        updateRequest.setUnBlockMember(true);
+
+        when(memberRepository.findById("123")).thenReturn(Optional.of(mockMember));
+        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.getForEntity(
+            anyString(), eq(String.class))).thenReturn(new ResponseEntity<>("{\"valid\":true}", HttpStatus.OK));
+
+        MemberDto result = memberService.updateMemberDetails("123", updateRequest);
+
+        assertThat(result.getName()).isEqualTo("Updated Name");
+        assertThat(result.getPhoneNumber()).isEqualTo("1234567899");
         assertThat(result.getRoles()).contains("ROLE_ADMIN");
         assertThat(result.isBlocked()).isFalse();
     }

@@ -1,16 +1,22 @@
 package com.kitchensink.api;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchensink.config.security.JwtTokenProvider;
 import com.kitchensink.dto.MemberDto;
 import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.service.MemberService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -18,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -36,6 +43,12 @@ class MemberControllerTest {
 
     @MockBean
     private MemberService memberService;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+
+    @MockBean
+    private JwtTokenProvider tokenProvider;
 
     @Test
     @WithMockUser
@@ -47,6 +60,21 @@ class MemberControllerTest {
         mockMvc.perform(get("/api/members/current"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("123"));
+    }
+
+    @Test
+    void testCurrentUserDataBlocked() throws Exception {
+        MemberDto dto = new MemberDto();
+        dto.setId("123");
+        Mockito.when(memberService.currentUserData(any())).thenReturn(dto);
+
+        Mockito.doThrow(new AppAuthenticationException("Token is expired", ErrorType.TOKEN_EXPIRED))
+                .when(tokenProvider).validateAccessToken("access_token");
+
+        mockMvc.perform(get("/api/members/current")
+                       .header(HttpHeaders.AUTHORIZATION, "Bearer access_token"))
+               .andExpect(status().isUnauthorized())
+               .andExpect(jsonPath("$.message").value("Token is expired"));
     }
 
     @Test
@@ -75,13 +103,22 @@ class MemberControllerTest {
     void testUpdateUserById() throws Exception {
         MemberDto updatedDto = new MemberDto();
         updatedDto.setId("123");
-        Mockito.when(memberService.updateMemberDetails(eq("123"), any(UpdateMemberRequest.class)))
+
+        ArgumentCaptor<UpdateMemberRequest> captor = ArgumentCaptor.forClass(UpdateMemberRequest.class);
+        Mockito.when(memberService.updateMemberDetails(eq("123"), captor.capture()))
                .thenReturn(updatedDto);
+
+        UpdateMemberRequest updateRequest = new UpdateMemberRequest();
+        updateRequest.setName("Updated Name");
+        updateRequest.setPhoneNumber("1234567890");
 
         mockMvc.perform(put("/api/members/123")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"newname\"}"))
+                .content(objectMapper.writeValueAsString(updateRequest)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("123"));
+
+        assertEquals(captor.getValue(), updateRequest);
+        assertEquals(captor.getValue().hashCode(), updateRequest.hashCode());
     }
 }

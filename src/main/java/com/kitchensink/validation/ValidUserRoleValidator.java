@@ -1,9 +1,9 @@
 package com.kitchensink.validation;
 
-import java.util.List;
-
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+
+import java.util.List;
 
 /**
  * The Class ValidUserRoleValidator.
@@ -23,6 +23,6 @@ public class ValidUserRoleValidator implements ConstraintValidator<ValidUserRole
      */
     @Override
     public boolean isValid(List<String> roles, ConstraintValidatorContext context) {
-        return roles != null && roles.size() == 1 && "USER".equals(roles.get(0));
+        return roles != null && roles.size() == 1 && "USER".equals(roles.getFirst());
     }
 }

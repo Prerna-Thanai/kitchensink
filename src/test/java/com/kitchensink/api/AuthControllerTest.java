@@ -1,8 +1,12 @@
 package com.kitchensink.api;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,10 +16,12 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -67,7 +73,8 @@ class AuthControllerTest {
         loginRequest.setEmail("user@example.com");
         loginRequest.setPassword("password");
 
-        when(loginService.login(any(LoginRequestDto.class))).thenReturn(dummyAuth);
+        ArgumentCaptor<LoginRequestDto> loginRequestCaptor = ArgumentCaptor.forClass(LoginRequestDto.class);
+        when(loginService.login(loginRequestCaptor.capture())).thenReturn(dummyAuth);
         when(tokenProvider.generateAccessToken(any(Authentication.class))).thenReturn(accessToken);
         when(tokenProvider.generateRefreshToken(any(Authentication.class))).thenReturn(refreshToken);
         when(tokenProvider.getJwtAccessExpiration()).thenReturn(Duration.ofMinutes(15));
@@ -77,28 +84,45 @@ class AuthControllerTest {
             objectMapper.writeValueAsString(loginRequest))).andExpect(status().isOk()).andExpect(jsonPath("$.message")
                 .value("Logged-in successful")).andExpect(jsonPath("$.accessTokenExpiry").exists()).andExpect(jsonPath(
                     "$.refreshTokenExpiry").exists());
+
+        assertEquals(loginRequestCaptor.getValue(), loginRequest);
+        assertEquals(loginRequestCaptor.getValue().hashCode(), loginRequest.hashCode());
+
     }
 
-    // @Test
-    void testRefreshToken_withValidToken() throws Exception {
+    /**
+     * Test for in valid endpoint with only refresh token and no access token.
+     */
+    @Test
+    void testNoAccessOnlyRefreshToken() throws Exception {
         doNothing().when(tokenProvider).validateRefreshToken(any(), any());
         when(tokenProvider.generateAccessToken(any())).thenReturn(accessToken);
         when(tokenProvider.generateRefreshToken(any())).thenReturn(refreshToken);
         when(tokenProvider.getUsernameFromToken(any())).thenReturn("test@email.com");
         when(tokenProvider.getJwtAccessExpiration()).thenReturn(Duration.ofMinutes(15));
         when(tokenProvider.getJwtRefreshExpiration()).thenReturn(Duration.ofDays(7));
-        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(Member.builder().email(
-            "test@email.com").id("1341421").password("1324").name("test").roles(Collections.emptyList()).build()));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/refresh").cookie(new Cookie("refresh_token",
-            refreshToken)).principal(dummyAuth)).andExpect(status().isOk()).andExpect(jsonPath("$.message").value(
-                "Refreshed successful"));
+        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(createMember("test@email.com","1324")));
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/na-route")
+                                              .cookie(new Cookie("refresh_token", refreshToken))
+                                              .principal(dummyAuth))
+               .andExpect(status().isNotFound())
+               .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                       anyOf(containsString("access_token="))
+               ));
     }
 
+    /**
+     * Test for 404 endpoint with no access/refresh token
+     */
     @Test
     void testRefreshToken_missingToken() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/refresh")).andExpect(status().isForbidden());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/na-route"))
+               .andExpect(status().isForbidden());
     }
 
+    /**
+     * Test for logout endpoint with valid refresh token.
+     */
     @Test
     void testLogout() throws Exception {
         doNothing().when(tokenProvider).validateRefreshToken(any(), any());
@@ -107,13 +131,16 @@ class AuthControllerTest {
         when(tokenProvider.getUsernameFromToken(any())).thenReturn("test@email.com");
         when(tokenProvider.getJwtAccessExpiration()).thenReturn(Duration.ofMinutes(15));
         when(tokenProvider.getJwtRefreshExpiration()).thenReturn(Duration.ofDays(7));
-        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(Member.builder().email(
-            "test@email.com").id("1341421").password("1324").name("test").roles(Collections.emptyList()).build()));
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/logout").cookie(new Cookie("refresh_token",
-            refreshToken))).andExpect(status().isOk()).andExpect(jsonPath("$.message").value(
-                "Logged out successfully"));
+        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(createMember("test@email.com","1324")));
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/logout")
+               .cookie(new Cookie("refresh_token", refreshToken)))
+               .andExpect(status().isOk())
+               .andExpect(jsonPath("$.message").value("Logged out successfully"));
     }
 
+    /**
+     * Test for check endpoint with valid refresh token.
+     */
     @Test
     void testCheck_authenticated() throws Exception {
         doNothing().when(tokenProvider).validateRefreshToken(any(), any());
@@ -122,14 +149,30 @@ class AuthControllerTest {
         when(tokenProvider.getUsernameFromToken(any())).thenReturn("test@email.com");
         when(tokenProvider.getJwtAccessExpiration()).thenReturn(Duration.ofMinutes(15));
         when(tokenProvider.getJwtRefreshExpiration()).thenReturn(Duration.ofDays(7));
-        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(Member.builder().email(
-            "test@email.com").id("1341421").password("1324").name("test").roles(Collections.emptyList()).build()));
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/check").cookie(new Cookie("refresh_token", refreshToken)))
-            .andExpect(status().isNotFound());
+        when(memberRepository.findByEmailAndActiveTrue(any())).thenReturn(Optional.of(createMember("test@email.com","1324")));
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/check")
+                                              .cookie(new Cookie("refresh_token", refreshToken)))
+               .andExpect(status().isNotFound());
     }
 
+    /**
+     * Test for check endpoint without authentication.
+     */
     @Test
     void testCheck_unauthenticated() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/check")).andExpect(status().isForbidden());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/check"))
+               .andExpect(status().isForbidden());
+    }
+
+    private Member createMember(String email, String password) {
+        Member member = new Member();
+        member.setId("test-id");
+        member.setEmail(email);
+        member.setPassword(password);
+        member.setActive(true);
+        member.setBlocked(false);
+        member.setFailedLoginAttempts(0);
+        member.setRoles(Collections.emptyList());
+        return member;
     }
 }

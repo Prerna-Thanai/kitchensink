@@ -2,6 +2,7 @@ package com.kitchensink.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,6 +16,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -109,6 +111,12 @@ public class LoginServiceImplTest {
         member.setBlocked(false);
         member.setFailedLoginAttempts(2); // simulate 2 previous failed attempts
 
+        Member dupMember = new Member();
+        dupMember.setActive(true);
+        dupMember.setBlocked(false);
+        dupMember.setFailedLoginAttempts(2); // simulate 2 previous failed attempts
+
+
         LoginRequestDto dto = new LoginRequestDto();
         dto.setEmail(email);
         dto.setPassword(password);
@@ -116,9 +124,13 @@ public class LoginServiceImplTest {
         when(memberRepository.findByEmail(email)).thenReturn(Optional.of(member));
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(
             new BadCredentialsException("Bad credentials"));
-        when(memberRepository.save(any(Member.class))).thenAnswer(i -> i.getArgument(0));
+        ArgumentCaptor<Member> captor = ArgumentCaptor.forClass(Member.class);
+        when(memberRepository.save(captor.capture())).thenAnswer(i -> i.getArgument(0));
 
-        BadCredentialsException ex = assertThrows(BadCredentialsException.class, () -> loginService.login(dto));
+        assertEquals(member, dupMember);
+        assertThrows(BadCredentialsException.class, () -> loginService.login(dto));
+        assertEquals(captor.getValue(), member);
+        assertNotEquals(captor.getValue(), dupMember); // ensure the member is updated
 
         assertTrue(member.isBlocked());
         assertEquals(3, member.getFailedLoginAttempts());
@@ -146,7 +158,7 @@ public class LoginServiceImplTest {
             new BadCredentialsException("Bad credentials"));
         when(memberRepository.save(any(Member.class))).thenAnswer(i -> i.getArgument(0));
 
-        BadCredentialsException ex = assertThrows(BadCredentialsException.class, () -> loginService.login(dto));
+        assertThrows(BadCredentialsException.class, () -> loginService.login(dto));
 
         assertFalse(member.isBlocked());
         assertEquals(2, member.getFailedLoginAttempts());

@@ -1,22 +1,20 @@
 package com.kitchensink.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-
 import com.kitchensink.dto.LoginRequestDto;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.LoginService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * The Class LoginServiceImpl.
@@ -56,12 +54,12 @@ public class LoginServiceImpl implements LoginService {
     @Override
     public Authentication login(LoginRequestDto loginRequestDto) {
         log.info("Logging in with email: {}", loginRequestDto.getEmail());
-        Optional<Member> loggingUser = memberRepository.findByEmail(loginRequestDto.getEmail());
-        if (loggingUser.isEmpty() || !loggingUser.get().isActive()) {
+        Optional<Member> loggingMember = memberRepository.findByEmail(loginRequestDto.getEmail());
+        if (loggingMember.isEmpty() || !loggingMember.get().isActive()) {
             log.error("Member with email {} doesn't exist", loginRequestDto.getEmail());
             throw new AppAuthenticationException("Member with email " + loginRequestDto.getEmail() + " doesn't exist",
                 ErrorType.MEMBER_NOT_FOUND);
-        } else if (loggingUser.get().isBlocked()) {
+        } else if (loggingMember.get().isBlocked()) {
             log.error("Account blocked for member with email {}", loginRequestDto.getEmail());
             throw new AppAuthenticationException("Account blocked for member with email " + loginRequestDto.getEmail(),
                 ErrorType.ACCOUNT_BLOCKED);
@@ -95,15 +93,19 @@ public class LoginServiceImpl implements LoginService {
      */
     private void handleFailedLogin(String email) {
         Optional<Member> memberOptional = memberRepository.findByEmail(email);
-        int attempts = memberOptional.get().getFailedLoginAttempts() + 1;
-        memberOptional.get().setFailedLoginAttempts(attempts);
+        if(memberOptional.isEmpty()){
+            return;
+        }
+        Member member = memberOptional.get();
+        int attempts = member.getFailedLoginAttempts() + 1;
+        member.setFailedLoginAttempts(attempts);
 
         if (attempts >= 3) {
-            memberOptional.get().setBlocked(true);
-            memberOptional.get().setBlockedAt(LocalDateTime.now());
+            member.setBlocked(true);
+            member.setBlockedAt(LocalDateTime.now());
         }
 
-        memberRepository.save(memberOptional.get());
+        memberRepository.save(member);
     }
 
 }

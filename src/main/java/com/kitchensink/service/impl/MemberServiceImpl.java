@@ -1,9 +1,15 @@
 package com.kitchensink.service.impl;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.repository.MemberRepository;
+import com.kitchensink.service.MemberService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -15,17 +21,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.repository.MemberRepository;
-import com.kitchensink.service.MemberService;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The Class MemberServiceImpl.
@@ -81,9 +80,7 @@ public class MemberServiceImpl implements MemberService {
             throw new AppAuthenticationException("Member not found", ErrorType.MEMBER_NOT_FOUND);
         }
         Member member = memberOptional.get();
-        return MemberDto.builder().name(member.getName()).email(member.getEmail()).active(member.isActive()).blocked(
-            member.isBlocked()).phoneNumber(member.getPhoneNumber()).roles(member.getRoles()).joiningDate(member
-                .getCreatedAt().toLocalDate()).build();
+        return toMemberDto(member);
     }
 
     /**
@@ -113,13 +110,24 @@ public class MemberServiceImpl implements MemberService {
      */
     private Page<MemberDto> transformMember(Page<Member> membersPage) {
 
-        List<MemberDto> memberDTOs = membersPage.getContent().stream().map((Member member) -> MemberDto.builder().id(
-            member.getId()).name(member.getName()).email(member.getEmail()).phoneNumber(member.getPhoneNumber()).roles(
-                member.getRoles()).joiningDate(member.getCreatedAt().toLocalDate()).active(member.isActive()).blocked(
-                    member.isBlocked()).build()).collect(Collectors.toList());
+        List<MemberDto> memberDTOs = membersPage.getContent().stream().map(this::toMemberDto).collect(Collectors.toList());
 
         // Create a new PageImpl with the converted content and original pagination info
         return new PageImpl<>(memberDTOs, membersPage.getPageable(), membersPage.getTotalElements());
+    }
+
+    private MemberDto toMemberDto(Member member){
+        MemberDto memberDto = new MemberDto();
+        memberDto.setId(member.getId());
+        memberDto.setName(member.getName());
+        memberDto.setEmail(member.getEmail());
+        memberDto.setPhoneNumber(member.getPhoneNumber());
+        memberDto.setRoles(member.getRoles());
+        memberDto.setJoiningDate(member.getCreatedAt().toLocalDate());
+        memberDto.setActive(member.isActive());
+        memberDto.setBlocked(member.isBlocked());
+        memberDto.setRoles(new ArrayList<>(member.getRoles()));
+        return memberDto;
     }
 
     /**
@@ -177,9 +185,7 @@ public class MemberServiceImpl implements MemberService {
         }
 
         Member savedMember = memberRepository.save(member);
-        return MemberDto.builder().id(member.getId()).name(savedMember.getName()).email(savedMember.getEmail())
-            .phoneNumber(savedMember.getPhoneNumber()).roles(savedMember.getRoles()).joiningDate(savedMember
-                .getCreatedAt().toLocalDate()).active(savedMember.isActive()).blocked(savedMember.isBlocked()).build();
+        return toMemberDto(savedMember);
 
     }
 

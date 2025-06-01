@@ -1,20 +1,8 @@
 package com.kitchensink.config.security;
 
-import java.security.Key;
-import java.time.Duration;
-import java.util.Date;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.service.impl.AuthServiceImpl;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -23,6 +11,16 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import java.security.Key;
+import java.time.Duration;
+import java.util.Date;
+import java.util.List;
 
 /**
  * The Class JwtTokenProvider.
@@ -172,8 +170,9 @@ public class JwtTokenProvider {
     }
 
     /**
-     * @param refresh
-     *            token
+     * Validate refresh token
+     * @param authentication
+     *            Authentication object
      * @param token
      *            the token
      */

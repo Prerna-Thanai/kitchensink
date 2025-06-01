@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,8 +15,10 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,10 +41,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
 import com.kitchensink.dto.UpdateMemberRequest;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.exception.BaseApplicationException;
 import com.kitchensink.repository.MemberRepository;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
@@ -48,11 +56,14 @@ class MemberServiceImplTest {
     private MemberRepository memberRepository;
     @Mock
     private RestTemplate restTemplate;
+    @Mock
+    private MongoTemplate mongoTemplate;
 
     @InjectMocks
     private MemberServiceImpl memberService;
 
     private Member mockMember;
+    private Pageable pageable;
 
     @Value("${phone.validation.key}")
     private String phoneValidationKey = "dummy-key";
@@ -72,8 +83,11 @@ class MemberServiceImplTest {
         mockMember.setCreatedAt(LocalDateTime.now());
         mockMember.setUpdatedAt(LocalDateTime.now());
 
+        pageable = PageRequest.of(0, 10, Sort.by("name"));
+
         ReflectionTestUtils.setField(memberService, "phoneValidationKey", "test-api-key");
         ReflectionTestUtils.setField(memberService, "restTemplate", restTemplate);
+        ReflectionTestUtils.setField(memberService, "mongoTemplate", mongoTemplate);
 
     }
 
@@ -181,8 +195,8 @@ class MemberServiceImplTest {
 
         when(memberRepository.findById("123")).thenReturn(Optional.of(mockMember));
         when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(restTemplate.getForEntity(
-            anyString(), eq(String.class))).thenReturn(new ResponseEntity<>("{\"valid\":true}", HttpStatus.OK));
+        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(new ResponseEntity<>(
+            "{\"valid\":true}", HttpStatus.OK));
 
         MemberDto result = memberService.updateMemberDetails("123", updateRequest);
 
@@ -222,7 +236,7 @@ class MemberServiceImplTest {
 
         when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(responseEntity);
 
-        AppAuthenticationException ex = assertThrows(AppAuthenticationException.class, () -> memberService
+        BaseApplicationException ex = assertThrows(BaseApplicationException.class, () -> memberService
             .validatePhoneNumber(phoneNumber));
 
         assertEquals("Invalid phone number: " + phoneNumber, ex.getMessage());
@@ -235,10 +249,120 @@ class MemberServiceImplTest {
         String phoneNumber = "1234567890";
         when(restTemplate.getForEntity(anyString(), eq(String.class))).thenThrow(new RuntimeException("API failure"));
 
-        AppAuthenticationException ex = assertThrows(AppAuthenticationException.class, () -> memberService
+        BaseApplicationException ex = assertThrows(BaseApplicationException.class, () -> memberService
             .validatePhoneNumber(phoneNumber));
 
         assertEquals("Invalid phone number: " + phoneNumber, ex.getMessage());
         assertEquals(ErrorType.PHONE_NUMBER_INVALID, ex.getErrorType());
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_NameAndEmail() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+        criteria.setName("John");
+        criteria.setEmail("john@example.com");
+
+        List<Member> mockMembers = List.of(createMember("John Doe", "john@example.com", List.of("ADMIN"), true),
+            createMember("Johnny", "johnny@example.com", List.of("USER"), true));
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(mockMembers);
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn((long) mockMembers.size());
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, false, criteria);
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals("John Doe", result.getContent().get(0).getName());
+        assertEquals("johnny@example.com", result.getContent().get(1).getEmail());
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_RoleOnly() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+        criteria.setRole("ADMIN");
+
+        List<Member> mockMembers = List.of(createMember("Alice", "alice@admin.com", List.of("ADMIN"), true));
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(mockMembers);
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn(1L);
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, false, criteria);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("ADMIN", result.getContent().get(0).getRoles().get(0));
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_NameEmailRole() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+        criteria.setName("Bob");
+        criteria.setEmail("bob@example.com");
+        criteria.setRole("USER");
+
+        List<Member> mockMembers = List.of(createMember("Bob", "bob@example.com", List.of("USER"), true));
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(mockMembers);
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn(1L);
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, false, criteria);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Bob", result.getContent().get(0).getName());
+        assertTrue(result.getContent().get(0).getRoles().contains("USER"));
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_EmptyCriteria() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+
+        List<Member> mockMembers = List.of(createMember("Charlie", "charlie@example.com", List.of("USER"), true),
+            createMember("Dave", "dave@example.com", List.of("ADMIN"), false));
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(mockMembers);
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn((long) mockMembers.size());
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, false, criteria);
+
+        assertEquals(2, result.getTotalElements());
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_NoResults() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+        criteria.setName("NonExistent");
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(Collections.emptyList());
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn(0L);
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, false, criteria);
+
+        assertEquals(0, result.getTotalElements());
+        assertTrue(result.getContent().isEmpty());
+    }
+
+    @Test
+    void testGetFilteredMembersByCriteria_RoleAndInactive() {
+        MemberSearchCriteria criteria = new MemberSearchCriteria();
+        criteria.setRole("ADMIN");
+
+        List<Member> mockMembers = List.of(createMember("Eve", "eve@admin.com", List.of("ADMIN"), false));
+
+        when(mongoTemplate.find(any(Query.class), eq(Member.class))).thenReturn(mockMembers);
+        when(mongoTemplate.count(any(Query.class), eq(Member.class))).thenReturn(1L);
+
+        Page<MemberDto> result = memberService.getFilteredMembersByCriteria(pageable, true, criteria);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Eve", result.getContent().get(0).getName());
+    }
+
+    private Member createMember(String name, String email, List<String> roles, boolean active) {
+        Member member = new Member();
+        member.setId(UUID.randomUUID().toString());
+        member.setName(name);
+        member.setEmail(email);
+        member.setRoles(roles);
+        member.setActive(active);
+        member.setCreatedAt(LocalDateTime.now());
+        return member;
     }
 }

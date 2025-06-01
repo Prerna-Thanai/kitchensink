@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
 import com.kitchensink.dto.UpdateMemberRequest;
 
 /**
@@ -60,5 +61,19 @@ public interface MemberService {
      *            the phone number
      */
     public void validatePhoneNumber(String phoneNumber);
+
+    /**
+     * Get filtered members
+     *
+     * @param pageable
+     *            the pageable
+     * @param showInactiveMembers
+     *            the show inactive members
+     * @param searchCriteria
+     *            the search criteria
+     * @return members
+     */
+    Page<MemberDto> getFilteredMembersByCriteria(Pageable pageable, boolean showInactiveMembers,
+        MemberSearchCriteria searchCriteria);
 
 }

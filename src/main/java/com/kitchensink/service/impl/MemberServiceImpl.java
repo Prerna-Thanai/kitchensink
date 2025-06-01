@@ -1,30 +1,39 @@
 package com.kitchensink.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.repository.MemberRepository;
-import com.kitchensink.service.MemberService;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.exception.BaseApplicationException;
+import com.kitchensink.repository.MemberRepository;
+import com.kitchensink.service.MemberService;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The Class MemberServiceImpl.
@@ -41,6 +50,10 @@ public class MemberServiceImpl implements MemberService {
     /** The rest template */
     @Autowired
     private RestTemplate restTemplate;
+
+    /** The mongo template. */
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     /** The phone validation key */
     @Value("${phone.validation.apikey:123}")
@@ -110,13 +123,14 @@ public class MemberServiceImpl implements MemberService {
      */
     private Page<MemberDto> transformMember(Page<Member> membersPage) {
 
-        List<MemberDto> memberDTOs = membersPage.getContent().stream().map(this::toMemberDto).collect(Collectors.toList());
+        List<MemberDto> memberDTOs = membersPage.getContent().stream().map(this::toMemberDto).collect(Collectors
+            .toList());
 
         // Create a new PageImpl with the converted content and original pagination info
         return new PageImpl<>(memberDTOs, membersPage.getPageable(), membersPage.getTotalElements());
     }
 
-    private MemberDto toMemberDto(Member member){
+    private MemberDto toMemberDto(Member member) {
         MemberDto memberDto = new MemberDto();
         memberDto.setId(member.getId());
         memberDto.setName(member.getName());
@@ -198,8 +212,8 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void validatePhoneNumber(String phoneNumber) {
         if (!validatePhone(phoneNumber)) {
-            throw new AppAuthenticationException("Invalid phone number: " + phoneNumber,
-                ErrorType.PHONE_NUMBER_INVALID);
+            throw new BaseApplicationException("Invalid phone number: " + phoneNumber, ErrorType.PHONE_NUMBER_INVALID,
+                HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -220,6 +234,54 @@ public class MemberServiceImpl implements MemberService {
             log.warn("Phone validation failed: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get filtered members
+     *
+     * @param pageable
+     *            the pageable
+     * @param showInactiveMembers
+     *            the show inactive members
+     * @param searchCriteria
+     *            the search criteria
+     * @return members
+     */
+    @Override
+    public Page<MemberDto> getFilteredMembersByCriteria(Pageable pageable, boolean showInactiveMembers,
+        MemberSearchCriteria searchCriteria) {
+
+        List<MemberDto> filteredMembers = new ArrayList<>();
+        Query query = new Query().with(pageable);
+
+        // OR part: (name OR email)
+        List<Criteria> orCriteria = new ArrayList<>();
+        if (searchCriteria.getName() != null && !searchCriteria.getName().isEmpty()) {
+            Pattern namePattern = Pattern.compile(".*" + Pattern.quote(searchCriteria.getName()) + ".*",
+                Pattern.CASE_INSENSITIVE);
+            orCriteria.add(Criteria.where("name").regex(namePattern));
+        }
+
+        if (searchCriteria.getEmail() != null && !searchCriteria.getEmail().isEmpty()) {
+            Pattern emailPattern = Pattern.compile(".*" + Pattern.quote(searchCriteria.getEmail()) + ".*",
+                Pattern.CASE_INSENSITIVE);
+            orCriteria.add(Criteria.where("email").regex(emailPattern));
+        }
+
+        if (!orCriteria.isEmpty()) {
+            query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+        }
+
+        if (searchCriteria.getRole() != null && !searchCriteria.getRole().isEmpty()) {
+            query.addCriteria(Criteria.where("roles").in(searchCriteria.getRole()));
+        }
+
+        List<Member> members = mongoTemplate.find(query, Member.class);
+        members.forEach(mem -> filteredMembers.add(toMemberDto(mem)));
+
+        long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), Member.class);
+
+        return new PageImpl<>(filteredMembers, pageable, count);
     }
 
 }

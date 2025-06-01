@@ -1,16 +1,24 @@
 package com.kitchensink.exception;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.enums.ErrorType;
 import jakarta.annotation.Nonnull;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.PropertyAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.validation.BindException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -21,12 +29,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
@@ -37,13 +47,17 @@ import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
  */
 @ControllerAdvice
 @Slf4j
-public class ExceptionAdvice {
+public class ExceptionAdvice implements AuthenticationEntryPoint{
+
+
+    private final ObjectMapper objectMapper;
 
     /**
      * Exception advice constructor
      */
-    public ExceptionAdvice() {
+    public ExceptionAdvice(ObjectMapper objectMapper) {
         super();
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -199,6 +213,37 @@ public class ExceptionAdvice {
     }
 
     /**
+     * Handle Missing Request Value Exception
+     *
+     * @param exception
+     *            the exception
+     * @param request
+     *            the request
+     * @return response entity
+     */
+    @ExceptionHandler(PropertyAccessException.class)
+    protected ResponseEntity<Object> handleMissingRequestValueException(
+            @Nonnull PropertyAccessException exception, @Nonnull WebRequest request) {
+        String message = String.format("Invalid %s value: %s", exception.getPropertyName(), exception.getValue());
+        return handleException(exception, message, ErrorType.REQUEST_VALIDATION_FAILED, BAD_REQUEST);
+    }
+
+    /**
+     * Handle Missing Request Value Exception
+     *
+     * @param exception
+     *            the exception
+     * @param request
+     *            the request
+     * @return response entity
+     */
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    protected ResponseEntity<Object> handleAuthorizationDeniedException(
+            @Nonnull AuthorizationDeniedException exception, @Nonnull WebRequest request) {
+        return handleException(exception, "Access Denied", ErrorType.MEMBER_NOT_AUTHORISED, FORBIDDEN);
+    }
+
+    /**
      * Handle Exception
      *
      * @param exception
@@ -231,4 +276,11 @@ public class ExceptionAdvice {
         return body;
     }
 
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
+        ResponseEntity<Object> unauthorisedAccess = handleException(exception, "Access Denied", ErrorType.MEMBER_NOT_AUTHORISED, FORBIDDEN);
+        response.setStatus(unauthorisedAccess.getStatusCode().value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().println(objectMapper.writeValueAsString(unauthorisedAccess.getBody()));
+    }
 }

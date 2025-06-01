@@ -1,26 +1,5 @@
 package com.kitchensink.service.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.dto.MemberDto;
@@ -29,11 +8,27 @@ import com.kitchensink.dto.UpdateMemberRequest;
 import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.exception.BaseApplicationException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberService;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * The Class MemberServiceImpl.
@@ -48,16 +43,14 @@ public class MemberServiceImpl implements MemberService {
     private final MemberRepository memberRepository;
 
     /** The rest template */
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
+    private final boolean phoneValidationEnabled;
     /** The mongo template. */
-    @Autowired
-    private MongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
 
     /** The phone validation key */
-    @Value("${phone.validation.apikey:123}")
-    private String phoneValidationKey;
+    private final String phoneValidationKey;
 
     /** The Constant PHONE_VALIDATION_URL */
     private static final String PHONE_VALIDATION_URL = "https://phonevalidation.abstractapi.com/v1/?api_key=";
@@ -68,8 +61,15 @@ public class MemberServiceImpl implements MemberService {
      * @param memberRepository
      *            the member repository
      */
-    public MemberServiceImpl(MemberRepository memberRepository) {
+    public MemberServiceImpl(MemberRepository memberRepository, RestTemplate restTemplate,
+                             MongoTemplate mongoTemplate,
+                             @Value("${phone.validation.enabled:true}") boolean phoneValidationEnabled,
+                             @Value("${phone.validation.apikey:123}") String phoneValidationKey) {
         this.memberRepository = memberRepository;
+        this.restTemplate = restTemplate;
+        this.mongoTemplate = mongoTemplate;
+        this.phoneValidationEnabled = phoneValidationEnabled;
+        this.phoneValidationKey = phoneValidationKey;
     }
 
     /**
@@ -123,14 +123,13 @@ public class MemberServiceImpl implements MemberService {
      */
     private Page<MemberDto> transformMember(Page<Member> membersPage) {
 
-        List<MemberDto> memberDTOs = membersPage.getContent().stream().map(this::toMemberDto).collect(Collectors
-            .toList());
+        List<MemberDto> memberDTOs = membersPage.getContent().stream().map(this::toMemberDto).collect(Collectors.toList());
 
         // Create a new PageImpl with the converted content and original pagination info
         return new PageImpl<>(memberDTOs, membersPage.getPageable(), membersPage.getTotalElements());
     }
 
-    private MemberDto toMemberDto(Member member) {
+    private MemberDto toMemberDto(Member member){
         MemberDto memberDto = new MemberDto();
         memberDto.setId(member.getId());
         memberDto.setName(member.getName());
@@ -211,9 +210,9 @@ public class MemberServiceImpl implements MemberService {
      */
     @Override
     public void validatePhoneNumber(String phoneNumber) {
-        if (!validatePhone(phoneNumber)) {
-            throw new BaseApplicationException("Invalid phone number: " + phoneNumber, ErrorType.PHONE_NUMBER_INVALID,
-                HttpStatus.BAD_REQUEST);
+        if (phoneValidationEnabled && !validatePhone(phoneNumber)) {
+            throw new AppAuthenticationException("Invalid phone number: " + phoneNumber,
+                ErrorType.PHONE_NUMBER_INVALID);
         }
     }
 

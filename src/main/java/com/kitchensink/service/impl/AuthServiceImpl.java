@@ -1,7 +1,7 @@
 package com.kitchensink.service.impl;
 
-import java.util.Optional;
-
+import com.kitchensink.entity.Member;
+import com.kitchensink.repository.MemberRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,8 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.kitchensink.entity.Member;
-import com.kitchensink.repository.MemberRepository;
+import java.util.Optional;
 
 /**
  * The Class AuthServiceImpl.
@@ -50,7 +49,8 @@ public class AuthServiceImpl implements UserDetailsService {
         if (member.isBlocked()) {
             throw new UsernameNotFoundException("Member with email " + email + " is blocked");
         }
-        return User.withUsername(email).password(member.getPassword()).authorities(member.getRoles().stream().map(
-            SimpleGrantedAuthority::new).toList()).disabled(!member.isActive()).build();
+        return User.withUsername(email).password(member.getPassword())
+                   .authorities(member.getRoles().stream().map(role -> "ROLE_" + role) //spring requires ROLE_ prefix
+                   .map(SimpleGrantedAuthority::new).toList()).disabled(!member.isActive()).build();
     }
 }

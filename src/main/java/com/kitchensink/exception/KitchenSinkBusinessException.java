@@ -1,8 +1,7 @@
 package com.kitchensink.exception;
 
-import org.springframework.http.HttpStatus;
-
 import com.kitchensink.enums.ErrorType;
+import org.springframework.http.HttpStatus;
 
 public class KitchenSinkBusinessException extends BaseApplicationException {
 

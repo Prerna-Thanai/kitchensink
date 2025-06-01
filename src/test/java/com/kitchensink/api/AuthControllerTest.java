@@ -1,19 +1,13 @@
 package com.kitchensink.api;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchensink.config.security.JwtTokenProvider;
+import com.kitchensink.dto.LoginRequestDto;
+import com.kitchensink.entity.Member;
+import com.kitchensink.repository.MemberRepository;
+import com.kitchensink.service.LoginService;
+import com.kitchensink.service.MemberService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,15 +23,19 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchensink.config.security.JwtTokenProvider;
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.entity.Member;
-import com.kitchensink.repository.MemberRepository;
-import com.kitchensink.service.LoginService;
-import com.kitchensink.service.MemberService;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Optional;
 
-import jakarta.servlet.http.Cookie;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @AutoConfigureMockMvc
@@ -49,9 +47,6 @@ class AuthControllerTest {
 
     @MockBean
     private LoginService loginService;
-
-    @MockBean
-    private MemberService memberService;
 
     @MockBean
     private MemberRepository memberRepository;

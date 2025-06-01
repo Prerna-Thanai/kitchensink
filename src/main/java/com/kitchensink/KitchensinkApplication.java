@@ -2,6 +2,7 @@ package com.kitchensink;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 /**
  * The Class KitchensinkApplication.
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author prerna
  */
 @SpringBootApplication
+@EnableMethodSecurity
 public class KitchensinkApplication {
 
     /**

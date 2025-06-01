@@ -1,29 +1,16 @@
 package com.kitchensink.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.exception.BaseApplicationException;
+import com.kitchensink.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -37,17 +24,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.MemberSearchCriteria;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.exception.BaseApplicationException;
-import com.kitchensink.repository.MemberRepository;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class MemberServiceImplTest {
@@ -59,7 +56,6 @@ class MemberServiceImplTest {
     @Mock
     private MongoTemplate mongoTemplate;
 
-    @InjectMocks
     private MemberServiceImpl memberService;
 
     private Member mockMember;
@@ -83,11 +79,9 @@ class MemberServiceImplTest {
         mockMember.setCreatedAt(LocalDateTime.now());
         mockMember.setUpdatedAt(LocalDateTime.now());
 
+        memberService = new MemberServiceImpl(
+            memberRepository, restTemplate, mongoTemplate, true, phoneValidationKey);
         pageable = PageRequest.of(0, 10, Sort.by("name"));
-
-        ReflectionTestUtils.setField(memberService, "phoneValidationKey", "test-api-key");
-        ReflectionTestUtils.setField(memberService, "restTemplate", restTemplate);
-        ReflectionTestUtils.setField(memberService, "mongoTemplate", mongoTemplate);
 
     }
 

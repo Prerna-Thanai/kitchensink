@@ -1,5 +1,6 @@
 package com.kitchensink.exception;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.api.TestController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ class ExceptionAdviceControllerTest {
     public void setup() {
         this.mockMvc = MockMvcBuilders
                 .standaloneSetup(testController)     // instantiate controller.
-                .setControllerAdvice(new ExceptionAdvice())   // bind with controller advice.
+                .setControllerAdvice(new ExceptionAdvice(new ObjectMapper()))   // bind with controller advice.
                 .build();
     }
     @Test
@@ -141,6 +142,16 @@ class ExceptionAdviceControllerTest {
                        .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.message").value(containsString("Required parameter 'param' is not present")))
+               .andExpect(jsonPath("$.errorType").value("REQUEST_VALIDATION_FAILED"))
+               .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void testMismatchedParamException() throws Exception {
+        mockMvc.perform(get("/test-mismatch?param=<boolean>")
+                       .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isBadRequest())
+               .andExpect(jsonPath("$.message").value(containsString("Invalid param value: <boolean>")))
                .andExpect(jsonPath("$.errorType").value("REQUEST_VALIDATION_FAILED"))
                .andExpect(jsonPath("$.status").value(400));
     }

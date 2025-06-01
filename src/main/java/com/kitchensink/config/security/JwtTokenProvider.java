@@ -106,18 +106,19 @@ public class JwtTokenProvider {
      *            the authentication
      * @return token
      */
-    public String generateRefreshToken(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+    public String generateRefreshToken(Authentication authentication){
+        if(authentication == null || !authentication.isAuthenticated()){
             throw new IllegalArgumentException("Authentication is null or not authenticated");
         }
-        if (authentication.getPrincipal()instanceof UserDetails userDetails) {
+        if(authentication.getPrincipal() instanceof UserDetails userDetails){
             List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
             Date now = new Date();
             Date expiryDate = new Date(now.getTime() + jwtAccessExpiration.toMillis());
 
             return Jwts.builder().setSubject(userDetails.getUsername()).setIssuedAt(now).setExpiration(expiryDate)
-                .claim("roles", roles).claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN).signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                       .claim("roles", roles).claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN)
+                       .signWith(key, SignatureAlgorithm.HS256)
+                       .compact();
         }
         throw new IllegalArgumentException("Authentication principal is not an instance of UserDetails");
     }

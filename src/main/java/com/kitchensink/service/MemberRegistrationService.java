@@ -1,8 +1,7 @@
 package com.kitchensink.service;
 
-import org.springframework.security.core.Authentication;
-
 import com.kitchensink.dto.RegisterMemberDto;
+import org.springframework.security.core.Authentication;
 
 /**
  * The Interface MemberRegistrationService.

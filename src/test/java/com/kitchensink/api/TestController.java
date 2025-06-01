@@ -54,4 +54,14 @@ public class TestController{
             throw new BaseApplicationException("Parameter is required", ErrorType.REQUEST_VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
         }
     }
+
+    @GetMapping("/test-mismatch")
+    public void handleRequest(@RequestParam Boolean param) {
+        // This method is just to demonstrate handling of a request with a query parameter.
+        // If the parameter is missing, it will throw a MissingServletRequestParameterException.
+        // The exception will be handled by the ExceptionAdvice class.
+        if (param == null ) {
+            throw new BaseApplicationException("Parameter is required", ErrorType.REQUEST_VALIDATION_FAILED, HttpStatus.BAD_REQUEST);
+        }
+    }
 }

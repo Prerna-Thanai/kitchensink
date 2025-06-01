@@ -21,7 +21,7 @@ import java.util.List;
 public class RegisterMemberDto {
 
     /** The name. */
-    @NotNull(message = "Name must not be null")
+    @NotBlank(message = "Name must not be blank")
     @Size(min = 1, max = 30)
     @Pattern(regexp = "[^0-9]*", message = "Name can only contains alphabets")
     private String name;

@@ -1,10 +1,16 @@
 package com.kitchensink.config.security;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,18 +22,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * The Class JwtAuthFilter.
@@ -94,6 +92,8 @@ public class JwtAuthFilter extends GenericFilterBean {
             resetAuthenticationAfterRequest();
         } catch (AuthenticationException | AppAuthenticationException e) {
             logger.error("Authentication error:", e);
+            response.addCookie(getCookie("access_token", "", 0)); // Clear access token cookie
+            response.addCookie(getCookie("refresh_token", "", 0)); // Clear refresh token cookie
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write(getErrorBody(e.getMessage(), HttpStatus.UNAUTHORIZED));
@@ -148,11 +148,7 @@ public class JwtAuthFilter extends GenericFilterBean {
                     userDetails, null, userDetails.getAuthorities());
                 accessToken = jwtTokenProvider.generateAccessToken(authentication);
                 // add cookie back to response
-                Cookie accessTokenCookie = new Cookie("access_token", accessToken);
-                accessTokenCookie.setHttpOnly(true);
-                accessTokenCookie.setPath("/");
-                accessTokenCookie.setMaxAge((int) jwtTokenProvider.getJwtAccessExpiration().getSeconds());
-                response.addCookie(accessTokenCookie);
+                response.addCookie(getCookie("access_token", accessToken, jwtTokenProvider.getJwtAccessExpiration().getSeconds()));
             } catch (AuthenticationException e) {
                 log.error("Invalid refresh token: {}", refreshToken, e);
                 return null;
@@ -179,6 +175,14 @@ public class JwtAuthFilter extends GenericFilterBean {
             : ErrorType.UNKNOWN);
         body.put("status", status.value());
         return objectMapper.writeValueAsString(body);
+    }
+
+    private Cookie getCookie(String name, String value, long maxAge) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge((int) maxAge);
+        return cookie;
     }
 
 }

@@ -1,25 +1,18 @@
 package com.kitchensink.api;
 
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
+import com.kitchensink.dto.RegisterMemberDto;
+import com.kitchensink.service.MemberRegistrationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.kitchensink.config.security.JwtTokenProvider;
-import com.kitchensink.dto.RegisterMemberDto;
-import com.kitchensink.service.MemberRegistrationService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
+import java.util.Map;
 
 /**
  * The Class MemberRegistrationController.
@@ -33,27 +26,14 @@ public class MemberRegistrationController {
     /** The member registration service */
     private final MemberRegistrationService memberRegistrationService;
 
-    /** The refresh cookie path */
-    private final String refreshCookiePath;
-
-    /** The token provider */
-    private final JwtTokenProvider tokenProvider;
-
     /**
      * MemberRegistrationController constructor
      *
      * @param memberRegistrationService
      *            the member registration service
-     * @param refreshCookiePath
-     *            the refresh cookie path
-     * @param tokenProvider
-     *            the token provider
      */
-    public MemberRegistrationController(MemberRegistrationService memberRegistrationService,
-        @Value("${jwt.refresh.cookie.path:/}") String refreshCookiePath, JwtTokenProvider tokenProvider) {
+    public MemberRegistrationController(MemberRegistrationService memberRegistrationService) {
         this.memberRegistrationService = memberRegistrationService;
-        this.refreshCookiePath = refreshCookiePath;
-        this.tokenProvider = tokenProvider;
     }
 
     /**
@@ -70,29 +50,8 @@ public class MemberRegistrationController {
                     description = "Internal server error") })
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody RegisterMemberDto newMember) {
-        Authentication registeredMember = memberRegistrationService.register(newMember);
-        return getTokenCookiesResponseEntity(registeredMember);
-    }
-
-    /**
-     * Get cookie with token
-     *
-     * @param authentication
-     *            the authentication
-     * @return response entity
-     */
-    private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication) {
-        String accessToken = tokenProvider.generateAccessToken(authentication);
-        ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
-            .maxAge(tokenProvider.getJwtAccessExpiration()).build();
-
-        String refreshToken = tokenProvider.generateRefreshToken(authentication);
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
-            refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
-            HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", "Registration successful",
-                "accessTokenExpiry", tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry",
-                tokenProvider.getJwtRefreshExpiration().toMillis()));
+        memberRegistrationService.register(newMember);
+        return ResponseEntity.ok().body(Map.of("message", "Registration successful"));
     }
 
 }

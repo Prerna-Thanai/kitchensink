@@ -23,9 +23,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -72,12 +69,8 @@ class MemberRegistrationControllerTest{
                        .contentType(MediaType.APPLICATION_JSON)
                        .content(requestBody))
                .andExpect(status().isOk())
-               .andExpect(header().string(HttpHeaders.SET_COOKIE,
-                       anyOf(containsString("access_token="))
-               ))
-               .andExpect(jsonPath("$.message").value("Registration successful"))
-               .andExpect(jsonPath("$.accessTokenExpiry").isNumber())
-               .andExpect(jsonPath("$.refreshTokenExpiry").isNumber());
+               .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+               .andExpect(jsonPath("$.message").value("Registration successful"));
 
         assertEquals(dtoCaptor.getValue(), dto, "Captured DTO should match the original DTO");
         assertEquals(dtoCaptor.getValue().hashCode(), dto.hashCode());

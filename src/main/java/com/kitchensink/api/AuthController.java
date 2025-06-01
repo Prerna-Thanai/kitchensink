@@ -1,7 +1,12 @@
 package com.kitchensink.api;
 
-import java.util.Map;
-
+import com.kitchensink.config.security.JwtTokenProvider;
+import com.kitchensink.dto.LoginRequestDto;
+import com.kitchensink.service.LoginService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -12,14 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.kitchensink.config.security.JwtTokenProvider;
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.service.LoginService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
+import java.util.Map;
 
 /**
  * The Class AuthController.
@@ -71,20 +69,16 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         Authentication login = loginService.login(loginRequestDto);
 
-        return getTokenCookiesResponseEntity(login, "Logged-in successful");
+        return getTokenCookiesResponseEntity(login);
     }
 
     /**
      * Get Cookie with token
      *
-     * @param authentication
-     *            the authentication
-     * @param message
-     *            the message
+     * @param authentication the authentication
      * @return response entity
      */
-    private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication,
-        String message) {
+    private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
             .maxAge(tokenProvider.getJwtAccessExpiration()).build();
@@ -93,7 +87,7 @@ public class AuthController {
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
             refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
-            HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", message, "accessTokenExpiry",
+            HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", "Logged-in successful", "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider
                     .getJwtRefreshExpiration().toMillis()));
     }

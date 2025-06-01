@@ -53,4 +53,12 @@ public interface MemberService {
      */
     MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest);
 
+    /**
+     * Validate if phone number is valid
+     *
+     * @param phoneNumber
+     *            the phone number
+     */
+    public void validatePhoneNumber(String phoneNumber);
+
 }

@@ -4,13 +4,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kitchensink.dto.MemberDto;
 import com.kitchensink.dto.UpdateMemberRequest;
 import com.kitchensink.entity.Member;
@@ -32,6 +38,17 @@ public class MemberServiceImpl implements MemberService {
 
     /** The member repository */
     private final MemberRepository memberRepository;
+
+    /** The rest template */
+    @Autowired
+    private RestTemplate restTemplate;
+
+    /** The phone validation key */
+    @Value("${phone.validation.apikey:123}")
+    private String phoneValidationKey;
+
+    /** The Constant PHONE_VALIDATION_URL */
+    private static final String PHONE_VALIDATION_URL = "https://phonevalidation.abstractapi.com/v1/?api_key=";
 
     /**
      * MemberServiceImpl constructor
@@ -143,6 +160,10 @@ public class MemberServiceImpl implements MemberService {
                 ErrorType.MEMBER_NOT_FOUND);
         }
 
+        if (!memberOptional.get().getPhoneNumber().equals(updateRequest.getPhoneNumber())) {
+            validatePhoneNumber(updateRequest.getPhoneNumber());
+        }
+
         // Only update allowed fields
         Member member = memberOptional.get();
         member.setName(updateRequest.getName());
@@ -160,6 +181,39 @@ public class MemberServiceImpl implements MemberService {
             .phoneNumber(savedMember.getPhoneNumber()).roles(savedMember.getRoles()).joiningDate(savedMember
                 .getCreatedAt().toLocalDate()).active(savedMember.isActive()).blocked(savedMember.isBlocked()).build();
 
+    }
+
+    /**
+     * Validate if phone number is valid
+     *
+     * @param phoneNumber
+     *            the phone number
+     */
+    @Override
+    public void validatePhoneNumber(String phoneNumber) {
+        if (!validatePhone(phoneNumber)) {
+            throw new AppAuthenticationException("Invalid phone number: " + phoneNumber,
+                ErrorType.PHONE_NUMBER_INVALID);
+        }
+    }
+
+    /**
+     * Call client to validate phone number
+     *
+     * @param phoneNumber
+     *            the phone number
+     * @return boolean
+     */
+    private boolean validatePhone(String phoneNumber) {
+        try {
+            String url = PHONE_VALIDATION_URL + phoneValidationKey + "&phone=" + phoneNumber;
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            JsonNode jsonNode = new ObjectMapper().readTree(response.getBody());
+            return jsonNode.path("valid").asBoolean();
+        } catch (Exception e) {
+            log.warn("Phone validation failed: {}", e.getMessage());
+            return false;
+        }
     }
 
 }

@@ -19,6 +19,8 @@ import java.util.Optional;
 @Service
 public class AuthServiceImpl implements UserDetailsService {
 
+    //test commit
+    
     /** The member repository */
     private final MemberRepository memberRepository;
 

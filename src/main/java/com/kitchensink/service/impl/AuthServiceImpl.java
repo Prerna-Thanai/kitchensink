@@ -45,7 +45,6 @@ public class AuthServiceImpl implements UserDetailsService {
         if (memberOptional.isEmpty()) {
             throw new UsernameNotFoundException("Member with email " + email + " not found");
         }
-      
         Member member = memberOptional.get();
         if (member.isBlocked()) {
             throw new UsernameNotFoundException("Member with email " + email + " is blocked");

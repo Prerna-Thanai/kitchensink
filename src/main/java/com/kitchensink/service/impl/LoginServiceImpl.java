@@ -1,20 +1,22 @@
 package com.kitchensink.service.impl;
 
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.repository.MemberRepository;
-import com.kitchensink.service.LoginService;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import com.kitchensink.dto.LoginRequestDto;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.repository.MemberRepository;
+import com.kitchensink.service.LoginService;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The Class LoginServiceImpl.
@@ -65,7 +67,13 @@ public class LoginServiceImpl implements LoginService {
                 ErrorType.ACCOUNT_BLOCKED);
         }
         try {
-            return authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+            Authentication authenticate = authenticate(loginRequestDto.getEmail(), loginRequestDto.getPassword());
+            Member member = loggingMember.get();
+            if (member.getFailedLoginAttempts() > 0) {
+                member.setFailedLoginAttempts(0);
+                memberRepository.save(member);
+            }
+            return authenticate;
         } catch (BadCredentialsException e) {
             handleFailedLogin(loginRequestDto.getEmail());
             throw e;
@@ -93,7 +101,7 @@ public class LoginServiceImpl implements LoginService {
      */
     private void handleFailedLogin(String email) {
         Optional<Member> memberOptional = memberRepository.findByEmail(email);
-        if(memberOptional.isEmpty()){
+        if (memberOptional.isEmpty()) {
             return;
         }
         Member member = memberOptional.get();

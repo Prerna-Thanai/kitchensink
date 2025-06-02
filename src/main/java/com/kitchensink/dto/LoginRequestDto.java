@@ -1,7 +1,7 @@
 package com.kitchensink.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.ToString;
 
@@ -14,12 +14,12 @@ import lombok.ToString;
 public class LoginRequestDto {
 
     /** The email. */
-    @NotNull(message = "Email should not be empty")
+    @NotBlank(message = "Email should not be empty")
     @Email(message = "Email must be well formed")
     private String email;
 
     /** The password. */
-    @NotNull(message = "Password should not be empty")
+    @NotBlank(message = "Password should not be empty")
     @ToString.Exclude
     private String password;
 

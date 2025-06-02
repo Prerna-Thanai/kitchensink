@@ -1,8 +1,7 @@
 package com.kitchensink.exception;
 
-import org.springframework.http.HttpStatus;
-
 import com.kitchensink.enums.ErrorType;
+import org.springframework.http.HttpStatus;
 
 public class UserNotFoundException extends BaseApplicationException {
 
@@ -10,7 +9,7 @@ public class UserNotFoundException extends BaseApplicationException {
     private static final long serialVersionUID = 721810209229508444L;
 
     /**
-     * Instantiates a new authentication exception.
+     * Instantiates UserNotFoundException
      *
      * @param message
      *            the message

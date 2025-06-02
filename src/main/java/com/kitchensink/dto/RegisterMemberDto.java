@@ -1,30 +1,29 @@
 package com.kitchensink.dto;
 
-import java.util.List;
-
+import com.kitchensink.validation.ValidUserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.ToString;
 
+import java.util.List;
+
 /**
- * The Class RegisterMember.
+ * The Class RegisterMemberDto.
  *
  * @author prerna
  */
 @Data
-@AllArgsConstructor
 public class RegisterMemberDto {
 
     /** The name. */
-    @NotNull
+    @NotBlank(message = "Name must not be blank")
     @Size(min = 1, max = 30)
-    @Pattern(regexp = "[^0-9]*", message = "Can only contains alphabets")
+    @Pattern(regexp = "[^0-9]*", message = "Name can only contains alphabets")
     private String name;
 
     /** The email. */
@@ -34,7 +33,7 @@ public class RegisterMemberDto {
     private String email;
 
     /** The phone number. */
-    @NotNull
+    @NotNull(message = "Phone number is required.")
     @Size(min = 10, max = 12)
     @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Invalid mobile number")
     private String phoneNumber;
@@ -46,8 +45,10 @@ public class RegisterMemberDto {
     @ToString.Exclude
     private String password;
 
+    /** The roles list */
     @NotEmpty(message = "At least one role must be added")
-    @Size(min = 1, max = 10, message = "Max of 10 roles can be assigned")
+    @Size(min = 1, max = 1, message = "Max of 1 roles can be assigned")
+    @ValidUserRole(message = "Member can only register as 'USER'")
     private List<String> roles;
 
 }

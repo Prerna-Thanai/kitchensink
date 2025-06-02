@@ -1,0 +1,16 @@
+jwt:
+  access:
+    expiration: ${JWT_ACCESS_EXPIRATION:1h}
+  refresh:
+    expiration: ${JWT_REFRESH_EXPIRATION:7d}
+  secret: ${JWT_SECRET:y0ur$up3r$3cr3#K3y7#@7I$@7L3@$732C#@r@c73r$L0ng}
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://blue-pebble-03b50c310.6.azurestaticapps.net}
+spring:
+  data:
+    mongodb:
+      database: ${SPRING_DATA_MONGODB_DATABASE:kitchensink}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/kitchensink}
+  devtools:
+    live-reload:
+        enabled: false

@@ -1,35 +1,26 @@
 package com.kitchensink.api;
 
-import java.util.Map;
-
+import com.kitchensink.config.security.JwtTokenProvider;
+import com.kitchensink.dto.LoginRequestDto;
+import com.kitchensink.service.LoginService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.kitchensink.config.security.JwtTokenProvider;
-import com.kitchensink.dto.LoginRequestDto;
-import com.kitchensink.service.LoginService;
-import com.kitchensink.service.MemberService;
-import com.kitchensink.service.impl.AuthServiceImpl;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
+import java.util.Map;
 
 /**
- * The Class MemberController.
+ * The Class AuthController.
  *
  * @author prerna
  */
@@ -37,25 +28,39 @@ import jakarta.validation.Valid;
 @RequestMapping(value = "/api/auth")
 public class AuthController {
 
+    /** The login service */
     private final LoginService loginService;
 
-    private final AuthServiceImpl authService;
-
-    private final MemberService memberService;
-
+    /** The refresh cookie path */
     private final String refreshCookiePath;
 
+    /** The token provider */
     private final JwtTokenProvider tokenProvider;
 
-    public AuthController(LoginService loginService, AuthServiceImpl authService, MemberService memberService,
-        @Value("${jwt.refresh.cookie.path:/}") String refreshCookiePath, JwtTokenProvider tokenProvider) {
+    /**
+     * AuthController constructor
+     *
+     * @param loginService
+     *            the login service
+     * @param refreshCookiePath
+     *            the refresh cookie path
+     * @param tokenProvider
+     *            the token provider
+     */
+    public AuthController(LoginService loginService, @Value("${jwt.refresh.cookie.path:/}") String refreshCookiePath,
+        JwtTokenProvider tokenProvider) {
         this.loginService = loginService;
-        this.authService = authService;
-        this.memberService = memberService;
         this.refreshCookiePath = refreshCookiePath;
         this.tokenProvider = tokenProvider;
     }
 
+    /**
+     * Login member
+     *
+     * @param loginRequestDto
+     *            the login request dto
+     * @return response entity
+     */
     @Operation(summary = "Login")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member logged in successfully"),
             @ApiResponse(responseCode = "401", description = "Invalid email or password"), @ApiResponse(
@@ -64,25 +69,16 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         Authentication login = loginService.login(loginRequestDto);
 
-        return getTokenCookiesResponseEntity(login, "Logged-in successful");
+        return getTokenCookiesResponseEntity(login);
     }
 
-    @Operation(summary = "Refresh")
-    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "token refreshed successfully"),
-            @ApiResponse(responseCode = "401", description = "Invalid refresh token"), @ApiResponse(
-                responseCode = "500", description = "Internal server error") })
-    @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refreshToken(@CookieValue(value = "refresh_token",
-        required = false) String refreshToken, Authentication authentication) {
-        if (refreshToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Refresh token is missing"));
-        }
-        tokenProvider.validateRefreshToken(authentication, refreshToken);
-        return getTokenCookiesResponseEntity(authentication, "Refreshed successful");
-    }
-
-    private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication,
-        String message) {
+    /**
+     * Get Cookie with token
+     *
+     * @param authentication the authentication
+     * @return response entity
+     */
+    private ResponseEntity<Map<String, Object>> getTokenCookiesResponseEntity(Authentication authentication) {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).httpOnly(true).path("/")
             .maxAge(tokenProvider.getJwtAccessExpiration()).build();
@@ -91,34 +87,35 @@ public class AuthController {
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).httpOnly(true).path(
             refreshCookiePath).maxAge(tokenProvider.getJwtRefreshExpiration()).build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString()).header(
-            HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", message, "accessTokenExpiry",
+            HttpHeaders.SET_COOKIE, refreshTokenCookie.toString()).body(Map.of("message", "Logged-in successful", "accessTokenExpiry",
                 tokenProvider.getJwtAccessExpiration().toMillis(), "refreshTokenExpiry", tokenProvider
                     .getJwtRefreshExpiration().toMillis()));
     }
 
-    @GetMapping("/check")
-    public ResponseEntity<?> check() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
-            return ResponseEntity.ok().build(); // User is authenticated
-        }
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Not authenticated
-    }
-
+    /**
+     * Logout member
+     *
+     * @return response entity
+     */
+    @Operation(summary = "Logout")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Member logged out successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid email or password") })
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout() {
         return getTokenRemovalCookiesResponseEntity();
     }
 
+    /**
+     * Get Cookie with token removal
+     *
+     * @return response entity
+     */
     public ResponseEntity<Map<String, Object>> getTokenRemovalCookiesResponseEntity() {
         ResponseCookie clearAccessToken = ResponseCookie.from("access_token", "").httpOnly(true).path("/").maxAge(0)
             .build();
 
         ResponseCookie clearRefreshToken = ResponseCookie.from("refresh_token", "").httpOnly(true).path(
-            refreshCookiePath) // should match path used when setting it
-            .maxAge(0).build();
+            refreshCookiePath).maxAge(0).build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, clearAccessToken.toString()).header(
             HttpHeaders.SET_COOKIE, clearRefreshToken.toString()).body(Map.of("message", "Logged out successfully"));

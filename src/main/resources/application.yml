@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: kitchensink
+  profiles:
+    active: dev
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
+      database: ${SPRING_DATA_MONGODB_DATABASE:kitchensink}
+
+info:
+  app:
+    version: @project.version@
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health
+
+jwt:
+  secret: y0ur$up3r$3cr3#K3y7#@7I$@7L3@$732C#@r@c73r$L0ng
+  access:
+    expiration: 6h
+  refresh:
+    expiration: 30d
+
+phone:
+  validation:
+    apikey: ${PHONE_VALIDATION_APIKEY:1234-1234-1234}

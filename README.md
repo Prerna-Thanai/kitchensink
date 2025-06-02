@@ -14,7 +14,6 @@ A Spring Boot application demonstrating REST APIs, MongoDB integration, validati
 - Docker
 - Deployed on Azure (App Service)
 
----
 
 ## 📦 Project Structure
 

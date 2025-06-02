@@ -28,17 +28,17 @@ jobs:
 
       - name: Show changed files
         run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
-
       - name: Run test generator script
-        run: ./scripts/generate-tests.sh
+        run: ./scripts/generate-tests.sh ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
+          OPENAI_PRJ: ${{ secrets.OPENAI_PRJ }}
+          OPENAI_ORG: ${{ secrets.OPENAI_ORG }}
       - name: Commit generated tests
         run: |
           git config user.name "CI Bot"
           git config user.email "ci@member.com"
-          git add src/test/java/generated
+          git add src/test/java/
           # Only commit if there are changes
           git commit -m "Add AI-generated unit tests"
           git push

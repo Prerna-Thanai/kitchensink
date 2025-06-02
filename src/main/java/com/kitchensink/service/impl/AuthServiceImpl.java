@@ -53,4 +53,5 @@ public class AuthServiceImpl implements UserDetailsService {
                    .authorities(member.getRoles().stream().map(role -> "ROLE_" + role) //spring requires ROLE_ prefix
                    .map(SimpleGrantedAuthority::new).toList()).disabled(!member.isActive()).build();
     }
+//test commit
 }

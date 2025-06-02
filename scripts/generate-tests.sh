@@ -13,7 +13,7 @@ fi
 MODEL="gpt-4o-mini"
 TEST_DIR="src/test/java"
 # Get modified Java files (excluding test files)
-files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- 'AuthServiceImpl.java' | grep -v "$TEST_DIR")
+files=$(git diff --name-only $BASE_SHA $HEAD_SHA -- '*AuthServiceImpl.java' | grep -v "$TEST_DIR")
 echo 'Files: ' $files
 mkdir -p $TEST_DIR/generated
 

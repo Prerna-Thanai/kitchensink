@@ -23,6 +23,6 @@ public class ValidUserRoleValidator implements ConstraintValidator<ValidUserRole
      */
     @Override
     public boolean isValid(List<String> roles, ConstraintValidatorContext context) {
-        return roles != null && roles.size() == 1 && "USER".equals(roles.getFirst());
+        return roles != null && roles.size() == 1 && "USER".equals(roles.get(0));
     }
 }

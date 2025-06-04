@@ -1,13 +1,25 @@
 package com.kitchensink.service.impl;
 
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.MemberSearchCriteria;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.entity.Member;
-import com.kitchensink.enums.ErrorType;
-import com.kitchensink.exception.AppAuthenticationException;
-import com.kitchensink.exception.BaseApplicationException;
-import com.kitchensink.repository.MemberRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,25 +38,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.entity.Member;
+import com.kitchensink.enums.ErrorType;
+import com.kitchensink.exception.AppAuthenticationException;
+import com.kitchensink.exception.BaseApplicationException;
+import com.kitchensink.repository.MemberRepository;
 
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class MemberServiceImplTest {
@@ -59,6 +60,7 @@ class MemberServiceImplTest {
     private MemberServiceImpl memberService;
 
     private Member mockMember;
+    private Member mockSameMember;
     private Pageable pageable;
 
     @Value("${phone.validation.key}")
@@ -79,8 +81,18 @@ class MemberServiceImplTest {
         mockMember.setCreatedAt(LocalDateTime.now());
         mockMember.setUpdatedAt(LocalDateTime.now());
 
-        memberService = new MemberServiceImpl(
-            memberRepository, restTemplate, mongoTemplate, true, phoneValidationKey);
+        mockSameMember = new Member();
+        mockSameMember.setId("1234");
+        mockSameMember.setEmail("test@example.com");
+        mockSameMember.setName("Test User");
+        mockSameMember.setPhoneNumber("1234567890");
+        mockSameMember.setActive(true);
+        mockSameMember.setBlocked(false);
+        mockSameMember.setRoles(List.of("ROLE_USER"));
+        mockSameMember.setCreatedAt(LocalDateTime.now());
+        mockSameMember.setUpdatedAt(LocalDateTime.now());
+
+        memberService = new MemberServiceImpl(memberRepository, restTemplate, mongoTemplate, true, phoneValidationKey);
         pageable = PageRequest.of(0, 10, Sort.by("name"));
 
     }
@@ -145,8 +157,9 @@ class MemberServiceImplTest {
     @Test
     void testDeleteMemberById_Success() {
         when(memberRepository.findById("123")).thenReturn(Optional.of(mockMember));
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockSameMember));
 
-        memberService.deleteMemberById("123");
+        memberService.deleteMemberById("123", getAuthForSuccess());
 
         assertThat(mockMember.isActive()).isFalse();
         verify(memberRepository).save(mockMember);
@@ -155,9 +168,10 @@ class MemberServiceImplTest {
     @Test
     void testDeleteMemberById_NotFound() {
         when(memberRepository.findById("123")).thenReturn(Optional.empty());
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockSameMember));
 
-        assertThatThrownBy(() -> memberService.deleteMemberById("123")).isInstanceOf(AppAuthenticationException.class)
-            .hasMessageContaining("Member with memberId 123 doesn't exist");
+        assertThatThrownBy(() -> memberService.deleteMemberById("123", getAuthForSuccess())).isInstanceOf(
+            AppAuthenticationException.class).hasMessageContaining("Member with memberId 123 doesn't exist");
     }
 
     @Test
@@ -169,9 +183,10 @@ class MemberServiceImplTest {
         updateRequest.setUnBlockMember(true);
 
         when(memberRepository.findById("123")).thenReturn(Optional.of(mockMember));
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockSameMember));
         when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        MemberDto result = memberService.updateMemberDetails("123", updateRequest);
+        MemberDto result = memberService.updateMemberDetails("123", getAuthForSuccess(), updateRequest);
 
         assertThat(result.getName()).isEqualTo("Updated Name");
         assertThat(result.getPhoneNumber()).isEqualTo("1234567890");
@@ -191,8 +206,9 @@ class MemberServiceImplTest {
         when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(new ResponseEntity<>(
             "{\"valid\":true}", HttpStatus.OK));
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockSameMember));
 
-        MemberDto result = memberService.updateMemberDetails("123", updateRequest);
+        MemberDto result = memberService.updateMemberDetails("123", getAuthForSuccess(), updateRequest);
 
         assertThat(result.getName()).isEqualTo("Updated Name");
         assertThat(result.getPhoneNumber()).isEqualTo("1234567899");
@@ -204,9 +220,11 @@ class MemberServiceImplTest {
     void testUpdateMemberDetails_NotFound() {
         UpdateMemberRequest updateRequest = new UpdateMemberRequest();
         when(memberRepository.findById("notfound")).thenReturn(Optional.empty());
+        when(memberRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockSameMember));
 
-        assertThatThrownBy(() -> memberService.updateMemberDetails("notfound", updateRequest)).isInstanceOf(
-            AppAuthenticationException.class).hasMessageContaining("Member with memberId notfound doesn't exist");
+        assertThatThrownBy(() -> memberService.updateMemberDetails("notfound", getAuthForSuccess(), updateRequest))
+            .isInstanceOf(AppAuthenticationException.class).hasMessageContaining(
+                "Member with memberId notfound doesn't exist");
     }
 
     @Test
@@ -358,5 +376,11 @@ class MemberServiceImplTest {
         member.setActive(active);
         member.setCreatedAt(LocalDateTime.now());
         return member;
+    }
+
+    private Authentication getAuthForSuccess() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(new User(mockMember.getEmail(), "password", List.of()));
+        return auth;
     }
 }

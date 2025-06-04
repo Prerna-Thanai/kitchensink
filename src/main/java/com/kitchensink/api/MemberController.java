@@ -1,12 +1,5 @@
 package com.kitchensink.api;
 
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.MemberSearchCriteria;
-import com.kitchensink.dto.UpdateMemberRequest;
-import com.kitchensink.service.MemberService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,6 +16,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
+import com.kitchensink.dto.UpdateMemberRequest;
+import com.kitchensink.service.MemberService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 /**
  * The Class MemberController.
@@ -95,8 +97,8 @@ public class MemberController {
             @ApiResponse(responseCode = "404", description = "Member not found") })
     @DeleteMapping("/{memberId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteUserById(@PathVariable String memberId) {
-        memberService.deleteMemberById(memberId);
+    public ResponseEntity<String> deleteUserById(@PathVariable String memberId, Authentication authentication) {
+        memberService.deleteMemberById(memberId, authentication);
         return ResponseEntity.ok().build();
     }
 
@@ -115,9 +117,9 @@ public class MemberController {
                 description = "Member not found") })
     @PutMapping("/{memberId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId,
+    public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId, Authentication authentication,
         @RequestBody UpdateMemberRequest updateRequest) {
-        MemberDto updatedMember = memberService.updateMemberDetails(memberId, updateRequest);
+        MemberDto updatedMember = memberService.updateMemberDetails(memberId, authentication, updateRequest);
         return ResponseEntity.ok().body(updatedMember);
     }
 

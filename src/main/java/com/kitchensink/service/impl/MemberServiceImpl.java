@@ -154,7 +154,14 @@ public class MemberServiceImpl implements MemberService {
      *            the param member id
      */
     @Override
-    public void deleteMemberById(String memberId) {
+    public void deleteMemberById(String memberId, Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Optional<Member> loggedInMemberOptional = memberRepository.findByEmail(userDetails.getUsername());
+        if (loggedInMemberOptional.isEmpty() || loggedInMemberOptional.get().getId().equals(memberId)) {
+            log.error("Member with emailId: {} trying to delete own details", loggedInMemberOptional.get().getEmail());
+            throw new BaseApplicationException("Member with emailId: " + loggedInMemberOptional.get().getEmail()
+                + " trying to delete own details", ErrorType.ACCOUNT_BLOCKED, HttpStatus.FORBIDDEN);
+        }
         // soft delete
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
@@ -177,7 +184,16 @@ public class MemberServiceImpl implements MemberService {
      * @return member
      */
     @Override
-    public MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest) {
+    public MemberDto updateMemberDetails(String memberId, Authentication authentication,
+        UpdateMemberRequest updateRequest) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Optional<Member> loggedInMemberOptional = memberRepository.findByEmail(userDetails.getUsername());
+        if (loggedInMemberOptional.isEmpty() || loggedInMemberOptional.get().getId().equals(memberId)) {
+            log.error("Member with emailId: {} trying to delete own details", loggedInMemberOptional.get().getEmail());
+            throw new BaseApplicationException("Member with emailId: " + loggedInMemberOptional.get().getEmail()
+                + " trying to delete own details", ErrorType.ACCOUNT_BLOCKED, HttpStatus.FORBIDDEN);
+        }
+
         Optional<Member> memberOptional = memberRepository.findById(memberId);
         if (memberOptional.isEmpty()) {
             log.error("Member with memberId {} doesn't exist", memberId);

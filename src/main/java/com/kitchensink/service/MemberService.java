@@ -1,11 +1,12 @@
 package com.kitchensink.service;
 
-import com.kitchensink.dto.MemberDto;
-import com.kitchensink.dto.MemberSearchCriteria;
-import com.kitchensink.dto.UpdateMemberRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
+
+import com.kitchensink.dto.MemberDto;
+import com.kitchensink.dto.MemberSearchCriteria;
+import com.kitchensink.dto.UpdateMemberRequest;
 
 /**
  * The Interface MemberService.
@@ -39,19 +40,21 @@ public interface MemberService {
      *
      * @param memberId
      *            the param member id
+     * @param authentication
      */
-    void deleteMemberById(String memberId);
+    void deleteMemberById(String memberId, Authentication authentication);
 
     /**
      * Update member details
      *
      * @param memberId
      *            the member id
+     * @param authentication
      * @param updateRequest
      *            the update request
      * @return member
      */
-    MemberDto updateMemberDetails(String memberId, UpdateMemberRequest updateRequest);
+    MemberDto updateMemberDetails(String memberId, Authentication authentication, UpdateMemberRequest updateRequest);
 
     /**
      * Validate if phone number is valid

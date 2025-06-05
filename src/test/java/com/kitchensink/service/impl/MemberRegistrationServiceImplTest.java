@@ -63,7 +63,7 @@ class MemberRegistrationServiceImplTest {
     @Test
     void testRegister_Success() throws Exception {
         when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
-        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(null);
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(Optional.empty());
         // when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(ResponseEntity.ok(
         // "{\"valid\":true}"));
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
@@ -87,7 +87,7 @@ class MemberRegistrationServiceImplTest {
     @Test
     void testRegister_PhoneAlreadyExists() {
         when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
-        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(new Member());
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(Optional.of(new Member()));
 
         assertThatThrownBy(() -> registrationService.register(newMember)).isInstanceOf(ConflictException.class)
             .hasMessageContaining("Phone number already registered: 1234567890");
@@ -96,7 +96,7 @@ class MemberRegistrationServiceImplTest {
     @Test
     void testRegister_InvalidPhone() {
         when(memberRepository.findByEmail(newMember.getEmail())).thenReturn(Optional.empty());
-        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(null);
+        when(memberRepository.findByPhoneNumber(newMember.getPhoneNumber())).thenReturn(Optional.empty());
         // when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(ResponseEntity.ok(
         // "{\"valid\":false}"));
         doThrow(new AppAuthenticationException("Invalid phone number: 1234567890", ErrorType.PHONE_NUMBER_INVALID))

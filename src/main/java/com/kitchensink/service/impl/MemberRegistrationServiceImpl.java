@@ -98,12 +98,11 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
                 ErrorType.EMAIL_ALREADY_REGISTERED);
         });
 
-        Member existingByPhone = memberRepository.findByPhoneNumber(newMember.getPhoneNumber());
-        if (existingByPhone != null) {
+        memberRepository.findByPhoneNumber(newMember.getPhoneNumber()).ifPresent(existing -> {
             log.error("Phone number already registered: {}", newMember.getPhoneNumber());
             throw new ConflictException("Phone number already registered: " + newMember.getPhoneNumber(),
                 ErrorType.USER_ALREADY_EXISTS);
-        }
+        });
     }
 
     /**

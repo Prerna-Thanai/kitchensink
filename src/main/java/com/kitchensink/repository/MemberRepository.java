@@ -1,12 +1,13 @@
 package com.kitchensink.repository;
 
-import com.kitchensink.entity.Member;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.kitchensink.entity.Member;
 
 /**
  * The Interface MemberRepository.
@@ -32,7 +33,7 @@ public interface MemberRepository extends MongoRepository<Member, String> {
      *            the phone number
      * @return the member
      */
-    Member findByPhoneNumber(String phoneNumber);
+    Optional<Member> findByPhoneNumber(String phoneNumber);
 
     /**
      * Find by active true

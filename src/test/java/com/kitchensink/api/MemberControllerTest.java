@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -130,7 +131,8 @@ class MemberControllerTest {
 
         UpdateMemberRequest updateRequest = new UpdateMemberRequest();
         updateRequest.setName("Updated Name");
-        updateRequest.setPhoneNumber("1234567890");
+        updateRequest.setPhoneNumber("6234567890");
+        updateRequest.setRoles(Lists.list("USER"));
 
         mockMvc.perform(put("/api/members/123").contentType(MediaType.APPLICATION_JSON).content(objectMapper
             .writeValueAsString(updateRequest))).andExpect(status().isOk()).andExpect(jsonPath("$.id").value("123"));

@@ -1,6 +1,9 @@
 package com.kitchensink.dto;
 
+import java.util.List;
+
 import com.kitchensink.validation.ValidUserRole;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -9,8 +12,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.ToString;
-
-import java.util.List;
 
 /**
  * The Class RegisterMemberDto.
@@ -22,14 +23,13 @@ public class RegisterMemberDto {
 
     /** The name. */
     @NotBlank(message = "Name must not be blank")
-    @Size(min = 1, max = 30)
+    @Size(min = 1, max = 30, message = "Name can be between 1-30 characters")
     @Pattern(regexp = "[^0-9]*", message = "Name can only contains alphabets")
     private String name;
 
     /** The email. */
     @NotBlank(message = "Email must not be blank")
     @Email(message = "Email should be valid")
-    @Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "Email must match standard format")
     private String email;
 
     /** The phone number. */

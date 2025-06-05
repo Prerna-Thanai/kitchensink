@@ -66,8 +66,6 @@ class MemberServiceImplTest {
     @Value("${phone.validation.key}")
     private String phoneValidationKey = "dummy-key";
 
-    private static final String PHONE_VALIDATION_URL = "https://api.example.com/validate?apikey=";
-
     @BeforeEach
     void setUp() {
         mockMember = new Member();

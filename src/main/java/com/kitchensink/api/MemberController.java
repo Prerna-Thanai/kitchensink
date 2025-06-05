@@ -25,6 +25,7 @@ import com.kitchensink.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 
 /**
  * The Class MemberController.
@@ -118,7 +119,7 @@ public class MemberController {
     @PutMapping("/{memberId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MemberDto> updateUserById(@PathVariable String memberId, Authentication authentication,
-        @RequestBody UpdateMemberRequest updateRequest) {
+        @RequestBody @Valid UpdateMemberRequest updateRequest) {
         MemberDto updatedMember = memberService.updateMemberDetails(memberId, authentication, updateRequest);
         return ResponseEntity.ok().body(updatedMember);
     }

@@ -2,6 +2,7 @@ package com.kitchensink.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ import com.kitchensink.entity.Member;
 import com.kitchensink.enums.ErrorType;
 import com.kitchensink.exception.AppAuthenticationException;
 import com.kitchensink.exception.BaseApplicationException;
+import com.kitchensink.exception.ConflictException;
 import com.kitchensink.repository.MemberRepository;
 import com.kitchensink.service.MemberService;
 
@@ -200,6 +202,13 @@ public class MemberServiceImpl implements MemberService {
             throw new AppAuthenticationException("Member with memberId " + memberId + " doesn't exist",
                 ErrorType.MEMBER_NOT_FOUND);
         }
+
+        memberRepository.findByPhoneNumber(updateRequest.getPhoneNumber()).filter(member -> !Objects.equals(memberId,
+            member.getId())).ifPresent(existing -> {
+                log.error("Phone number already registered with other user: {}", updateRequest.getPhoneNumber());
+                throw new ConflictException("Phone number linked with another user: " + updateRequest.getPhoneNumber(),
+                    ErrorType.USER_ALREADY_EXISTS);
+            });
 
         if (!memberOptional.get().getPhoneNumber().equals(updateRequest.getPhoneNumber())) {
             validatePhoneNumber(updateRequest.getPhoneNumber());
